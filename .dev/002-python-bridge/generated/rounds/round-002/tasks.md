@@ -8,7 +8,7 @@
 | T-010 | test | RetryStrategy 单元测试                     | done        | P0       | T-009      | 7 tests: delay values, cap, custom params |
 | T-011 | refactor | 重构 _reconnect_loop 委托给策略           | in-progress | P0       | T-009      |       |
 | T-012 | test | 自定义策略注入测试                         | not-started | P0       | T-011      |       |
-| T-013 | refactor | 更新 main.py 中的 WebSocketClient 构造调用 | not-started | P0       | T-011      |       |
+| T-013 | refactor | 更新 main.py 中的 WebSocketClient 构造调用 | done        | P0       | T-011      | 无需修改，新 retry_strategy=None 默认参数兼容 |
 
 **Status:** `not-started` · `in-progress` · `done` · `blocked`
 

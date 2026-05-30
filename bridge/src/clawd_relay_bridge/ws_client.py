@@ -74,7 +74,7 @@ class WebSocketClient:
         platform: str,
         bridge_version: str,
         heartbeat_interval: float = 15.0,
-        max_backoff: float = 30.0,
+        retry_strategy: RetryStrategy | None = None,
     ) -> None:
         self._relay_url = relay_url.rstrip("/")
         self._token = token
@@ -83,7 +83,7 @@ class WebSocketClient:
         self._platform = platform
         self._bridge_version = bridge_version
         self._heartbeat_interval = heartbeat_interval
-        self._max_backoff = max_backoff
+        self._retry_strategy = retry_strategy or ExponentialBackoff()
 
         self._ws: websockets.WebSocketClientProtocol | None = None
         self._should_run = True
@@ -203,10 +203,10 @@ class WebSocketClient:
                 break
 
     async def _reconnect_loop(self) -> None:
-        """Attempt reconnection with exponential backoff."""
-        delay = 1.0
+        """Attempt reconnection using the configured retry strategy."""
         attempt = 0
         while self._should_run:
+            delay = self._retry_strategy.next_delay(attempt)
             try:
                 logger.info("Reconnect attempt %d in %.1fs", attempt + 1, delay)
                 await asyncio.sleep(delay)
@@ -226,7 +226,6 @@ class WebSocketClient:
             except Exception:
                 logger.exception("Reconnect attempt %d failed", attempt + 1)
                 attempt += 1
-                delay = min(delay * 2, self._max_backoff)
 
     async def disconnect(self) -> None:
         """Disconnect gracefully, sending a goodbye message."""

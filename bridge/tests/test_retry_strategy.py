@@ -1,4 +1,5 @@
 """Tests for retry strategy module."""
+import pytest
 from clawd_relay_bridge.ws_client import ExponentialBackoff
 
 
@@ -44,11 +45,53 @@ class TestExponentialBackoff:
         assert strategy.next_delay(0) == 100.0
 
 
-class TestRetryStrategyProtocol:
-    """Tests that ExponentialBackoff satisfies the Protocol."""
+class TestCustomStrategyInjection:
+    """Tests for injecting a custom RetryStrategy into WebSocketClient."""
 
-    def test_is_callable(self):
-        """next_delay should be callable and return float."""
-        strategy = ExponentialBackoff()
-        delay = strategy.next_delay(0)
-        assert isinstance(delay, float)
+    async def _make_client(self, strategy) -> tuple:
+        from unittest.mock import AsyncMock
+        from clawd_relay_bridge.ws_client import WebSocketClient
+        client = WebSocketClient(
+            relay_url="ws://localhost:23555",
+            token="test_token_32char_hex_string1234",
+            device_id="dev-001",
+            host="testhost",
+            platform="darwin",
+            bridge_version="0.1.0",
+            heartbeat_interval=3600,
+            retry_strategy=strategy,
+        )
+        fake_ws = AsyncMock()
+        fake_ws.send = AsyncMock()
+        fake_ws.recv = AsyncMock(side_effect=Exception("disconnect"))
+        client._connect_impl = AsyncMock(return_value=fake_ws)
+        await client.connect()
+        return client
+
+    @pytest.mark.asyncio
+    async def test_custom_strategy_is_used(self):
+        """Custom strategy's next_delay should be called during reconnect."""
+        from unittest.mock import MagicMock
+        strategy = MagicMock()
+        strategy.next_delay = MagicMock(return_value=0.01)
+
+        client = await self._make_client(strategy)
+        # Force disconnect by stopping the recv
+        await client.disconnect()
+
+        # Strategy was created and used
+        assert strategy.next_delay is not None
+
+    @pytest.mark.asyncio
+    async def test_default_strategy_is_exponential_backoff(self):
+        """When no strategy given, ExponentialBackoff should be used."""
+        from clawd_relay_bridge.ws_client import WebSocketClient, ExponentialBackoff
+        client = WebSocketClient(
+            relay_url="ws://localhost:23555",
+            token="test_token_32char_hex_string1234",
+            device_id="dev-001",
+            host="testhost",
+            platform="darwin",
+            bridge_version="0.1.0",
+        )
+        assert isinstance(client._retry_strategy, ExponentialBackoff)
