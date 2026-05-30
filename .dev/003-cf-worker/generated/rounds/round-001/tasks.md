@@ -8,8 +8,8 @@
 | T-002 | feat   | 实现 types.ts                       | done        | P0     | -          | 创建 types.ts 含 TokenRecord, Admin API 类型, Env, STORAGE_KEYS |
 | T-003 | test   | 测试 types.ts 类型定义               | in-progress | P0     | T-002      |      |
 | T-004 | feat   | 实现 RelayRoom DO                   | done        | P0     | T-002      | 类型检查通过 |
-| T-005 | test   | 测试 RelayRoom DO 逻辑               | in-progress | P0     | T-004      |      |
-| T-006 | feat   | 实现 index.ts 路由和 WS 升级         | not-started | P0     | T-002, T-004 |      |
+| T-005 | test   | 测试 RelayRoom DO 逻辑               | done        | P0     | T-004      | 8 测试全部通过 |
+| T-006 | feat   | 实现 index.ts 路由和 WS 升级         | in-progress | P0     | T-002, T-004 |      |
 | T-007 | test   | 测试 index.ts 路由                   | not-started | P0     | T-006      |      |
 | T-008 | feat   | 实现 admin-console.ts 管理页面       | not-started | P1     | T-004      |      |
 | T-009 | test   | 测试 admin-console.ts                | not-started | P1     | T-008      |      |
