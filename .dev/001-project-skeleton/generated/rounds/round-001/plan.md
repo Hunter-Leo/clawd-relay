@@ -71,17 +71,6 @@ clawd-relay/
 - `src/protocol.ts`：定义 9 种消息类型接口
 - `src/index.ts`：重新导出所有类型
 
-消息类型清单：
-- `DeviceInfo` — 设备身份信息
-- `SessionInfo` — 会话状态
-- `SessionStateMsg` — 状态事件 (type: "session_state")
-- `PermissionRequestMsg` — 权限请求 (type: "permission_request")
-- `PermissionResponseMsg` — 权限回复 (type: "permission_response")
-- `HelloMsg` — 连接握手 (type: "hello")
-- `KeepaliveMsg` — 心跳 (type: "keepalive")
-- `DeviceOnlineMsg` — 上下线广播 (type: "device_online")
-- `SyncSnapshotMsg` — 全量快照 (type: "sync_snapshot")
-- `AGENT_META` — Agent 类型 → 显示元数据（label/color/icon）映射表
 
 ### 步骤 4 — Worker 脚手架
 - `worker/package.json`：依赖 `hono`，`@clawd-relay/types`
@@ -95,6 +84,13 @@ clawd-relay/
 
 ### 步骤 6 — Pydantic Schema
 - `bridge/src/bridge/schemas.py`：Pydantic BaseModel，与 TypeScript 类型语义对齐
+- 包含 data-model.md 定义的所有实体：
+  - 枚举类型：`AGENT_IDS`、`SESSION_STATES`、`PERMISSION_STATUS`（仅 Python 端，TS 端通过字符串字面量）
+  - 核心实体：`DeviceInfo`、`SessionInfo`、`TokenRecord`、`PermissionRecord`、`AlwaysAllowRule`
+  - 11 种消息类型：`SessionStateMsg`、`PermissionRequestMsg`、`HelloMsg`、`KeepaliveMsg`、`PermissionResponseMsg`、`DNDChangeMsg`、`AlwaysAllowMsg`、`NoClientsMsg`、`DeviceOnlineMsg`、`SyncSnapshotMsg`（+ 可选 `ProbeMsg`）
+  - 所有模型配置 `model_config = {"populate_by_name": True}`
+  - 所有字段使用 `Field(alias=...)` 实现 camelCase ↔ snake_case 映射
+- 同时同步更新 TS protocol.ts，确保消息类型数与 Python 端一致（11 种）
 
 ### 步骤 7 — 一致性验证
 - 编写测试验证双端消息构造正确
@@ -108,7 +104,7 @@ clawd-relay/
 - `bridge/src/bridge/schemas.py` — Python 等价（手动同步）
 
 无代码生成器。同步规则：
-1. 两端定义同样的 9 种消息类型，顺序一致
+1. 两端定义同样的 11 种消息类型，顺序一致（见步骤 6 清单）
 2. 字段名使用 camelCase（通用约定）
 3. Pydantic 使用 `Field(alias=...)` 处理命名差异
 4. 代码审查时需同时检查两端的协议文件

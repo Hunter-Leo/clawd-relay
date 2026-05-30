@@ -27,3 +27,14 @@
 - Verify TypeScript compiles (`npx tsc --noEmit`) after each TS task
 - Verify Python type checks (`mypy --strict` or `pyright`) after each Python task
 - All generated `.dev/` documents are committed to git alongside implementation
+
+## Round History
+**Current Round:** 1
+
+### Round 1 (complete)
+- **Status:** ✅ done
+- **Location:** `generated/rounds/round-001/`
+- **Tasks:** 11 planned, 11 completed, 0 deferred
+- **New issues:** ISS-001 (resolved)
+- **Open issues:** 0
+- **Summary:** REQ-001 项目骨架与消息协议定义完成。uv/npm workspace 配置、共享 TS 类型包(@clawd-relay/types)、Worker/Web 脚手架、Pydantic 消息模型(含枚举类型和全部 10 种消息)、TS 17 项 + Python 44 项测试全部通过。

@@ -5,6 +5,10 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "devDependencies": {
-    "typescript": "^5.7"
+    "typescript": "^5.7",
+    "vitest": "^3.0"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }
