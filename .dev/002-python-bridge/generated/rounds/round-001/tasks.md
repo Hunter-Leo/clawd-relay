@@ -6,9 +6,9 @@
 |-------|------|------------------------------------|-------------|----------|------------|-------|
 | T-001 | feat | 实现 Token 管理模块 (token.py)       | done        | P0       | -          | TokenManager: generate/load/regenerate/get_relay_url, CLI/env/file 优先级 |
 | T-002 | test | Token 管理单元测试                   | done        | P0       | T-001      | 11 tests: generate/load/regenerate/priority/url |
-| T-003 | feat | 实现 WebSocket 客户端 (ws_client.py) | not-started | P0       | T-001      |       |
-| T-004 | test | WebSocket 客户端单元测试             | not-started | P0       | T-003      |       |
-| T-005 | feat | 实现 HTTP 服务器 (server.py)         | not-started | P0       | T-003      |       |
+| T-003 | feat | 实现 WebSocket 客户端 (ws_client.py) | done        | P0       | T-001      | WebSocketClient: connect/reconnect/heartbeat/permission dispatch/goodbye |
+| T-004 | test | WebSocket 客户端单元测试             | done        | P0       | T-003      | 8 tests: hello/send/keepalive/permission_response/no_clients/timeout/disconnect |
+| T-005 | feat | 实现 HTTP 服务器 (server.py)         | in-progress | P0       | T-003      |       |
 | T-006 | test | HTTP 服务器单元测试                  | not-started | P0       | T-005      |       |
 | T-007 | feat | 实现主入口 (main.py)                 | not-started | P0       | T-001, T-003, T-005 | |
 | T-008 | test | 主入口及集成测试                     | not-started | P0       | T-007      |       |
