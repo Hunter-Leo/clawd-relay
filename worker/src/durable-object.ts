@@ -13,7 +13,7 @@ import { STORAGE_KEYS } from "./types";
 // ─── RingBuffer ────────────────────────────────────────────────────────────
 
 /** Fixed-size circular buffer for offline message replay. */
-class RingBuffer<T> {
+export class RingBuffer<T> {
 	private readonly buffer: T[];
 	private index: number;
 	private count: number;
