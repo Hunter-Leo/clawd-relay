@@ -26,7 +26,7 @@ Overall:               [██████████████░░░░�
 
 | ID | Name | Phase | Status | Dependencies | Priority | Notes |
 |---|---|---|---|---|---|---|
-| 001 | project-skeleton | 04 Plan | ⏳ pending | - | P0 | Scaffold + protocol done |
+| 001 | project-skeleton | 06 Start-and-resume | ⏳ pending | - | P0 | |
 | 002 | python-bridge | 04 Plan | ⏳ pending | 001 | P0 | |
 | 003 | cf-worker | 04 Plan | ⏳ pending | 001 | P0 | |
 | 004 | web-client | 04 Plan | ⏳ pending | 003 | P1 | |
