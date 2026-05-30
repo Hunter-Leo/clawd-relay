@@ -1,0 +1,9 @@
+{
+  "name": "clawd-relay",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["packages/*", "worker", "web"],
+  "devDependencies": {
+    "typescript": "^5.7"
+  }
+}

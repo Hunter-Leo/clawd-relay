@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Node / JS
+node_modules/
+packages/*/node_modules/
+worker/node_modules/
+web/node_modules/
+*.tsbuildinfo
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime / Config
+.env
+.env.local
+*.log
+
+# OMC
+.omc/
+
+# uv
+uv.lock

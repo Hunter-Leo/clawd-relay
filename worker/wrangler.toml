@@ -1,0 +1,11 @@
+name = "clawd-relay-worker"
+main = "src/index.ts"
+compatibility_date = "2026-05-30"
+
+[[durable_objects.bindings]]
+name = "RELAY_ROOM"
+class_name = "RelayRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RelayRoom"]
