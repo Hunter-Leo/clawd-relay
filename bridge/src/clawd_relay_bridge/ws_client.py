@@ -7,7 +7,7 @@ incoming permission responses to waiting HTTP handlers.
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import Any, Protocol
 
 import websockets
 
@@ -18,6 +18,44 @@ logger = logging.getLogger(__name__)
 
 class PermissionTimeout(Exception):
     """Raised when waiting for a permission response times out."""
+
+
+class RetryStrategy(Protocol):
+    """Protocol for reconnection delay computation.
+
+    Implementations compute the delay before a given retry attempt.
+    """
+
+    def next_delay(self, attempt: int) -> float:
+        """Return delay in seconds before the given retry *attempt*.
+
+        Args:
+            attempt: Zero-based retry attempt number (0 = first retry).
+        """
+        ...
+
+
+class ExponentialBackoff:
+    """Exponential backoff retry strategy with optional cap.
+
+    Delays follow: initial_delay * factor^attempt, capped at max_delay.
+    """
+
+    def __init__(
+        self,
+        initial_delay: float = 1.0,
+        max_delay: float = 30.0,
+        factor: float = 2.0,
+    ) -> None:
+        self._initial_delay = initial_delay
+        self._max_delay = max_delay
+        self._factor = factor
+
+    def next_delay(self, attempt: int) -> float:
+        if attempt == 0:
+            return self._initial_delay
+        delay = self._initial_delay * (self._factor ** attempt)
+        return min(delay, self._max_delay)
 
 
 class WebSocketClient:
