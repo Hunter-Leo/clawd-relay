@@ -5,8 +5,8 @@
 | ID    | 类型   | 任务名称                            | 状态        | 优先级 | 依赖       | 备注 |
 |-------|--------|-------------------------------------|-------------|--------|------------|------|
 | T-001 | config | 配置 vitest + miniflare 测试环境     | done        | P0     | -          | vitest 4.1.7 + @cloudflare/vitest-pool-workers 0.16.10, wrangler.toml 配置 |
-| T-002 | feat   | 实现 types.ts                       | in-progress | P0     | -          |      |
-| T-003 | test   | 测试 types.ts 类型定义               | not-started | P0     | T-002      |      |
+| T-002 | feat   | 实现 types.ts                       | done        | P0     | -          | 创建 types.ts 含 TokenRecord, Admin API 类型, Env, STORAGE_KEYS |
+| T-003 | test   | 测试 types.ts 类型定义               | in-progress | P0     | T-002      |      |
 | T-004 | feat   | 实现 RelayRoom DO                   | not-started | P0     | T-002      |      |
 | T-005 | test   | 测试 RelayRoom DO 逻辑               | not-started | P0     | T-004      |      |
 | T-006 | feat   | 实现 index.ts 路由和 WS 升级         | not-started | P0     | T-002, T-004 |      |
