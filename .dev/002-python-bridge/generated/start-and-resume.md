@@ -1,5 +1,5 @@
 # Start and Resume Guide — 002-python-bridge
-**Current Round:** 1
+**Current Round:** 2
 
 ## Quick Start
 1. 读取 `.dev/blueprint.md` — 项目整体状态
@@ -26,7 +26,15 @@
 ---
 
 ## Round History
-**Current Round:** 1
+**Current Round:** 2
+
+### Round 2 (complete)
+- **Status:** ✅ done
+- **Location:** `generated/rounds/round-002/`
+- **Tasks:** 5 planned, 5 completed, 0 deferred
+- **New issues:** ISS-001 resolved
+- **Open issues:** 0
+- **Summary:** 提取 RetryStrategy Protocol + ExponentialBackoff，重构 _reconnect_loop 委托给策略。90 项测试全部通过。
 
 ### Round 1 (complete)
 - **Status:** ✅ done

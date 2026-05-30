@@ -28,7 +28,7 @@ Overall:               [██████████████████�
 | ID | Name | Phase | Status | Dependencies | Priority | Notes |
 |---|---|---|---|---|---|---|
 | 001 | project-skeleton | 07 Done | ✅ done | - | P0 | Round 1: 11/11 tasks, all tests pass |
-| 002 | python-bridge | 07 Done | ✅ done | 001 | P0 | Round 1 完成 (8/8 tasks, 82 tests). ISS-001 open. |
+| 002 | python-bridge | 07 Done | ✅ done | 001 | P0 | Round 2 complete. ISS-001 resolved. 90 tests. |
 | 003 | cf-worker | 04 Plan | ⏳ pending | 001 | P0 | |
 | 004 | web-client | 04 Plan | ⏳ pending | 003 | P1 | |
 | 005 | hook-scripts | 04 Plan | ⏳ pending | 002 | P0 | |

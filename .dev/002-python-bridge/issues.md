@@ -4,7 +4,7 @@ Cross-round issue tracker. Open issues drive the next round's planning.
 
 | ID | Round | Type | Severity | Summary | Status |
 |-----|-------|------|----------|---------|--------|
-| ISS-001 | 1 | plan-deviation | medium | 重连策略未使用 Strategy 模式 | open |
+| ISS-001 | 1 | plan-deviation | medium | 重连策略未使用 Strategy 模式 | resolved |
 
 ### ISS-001 — 重连策略未使用 Strategy 模式
 
