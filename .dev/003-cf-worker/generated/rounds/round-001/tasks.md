@@ -10,9 +10,9 @@
 | T-004 | feat   | 实现 RelayRoom DO                   | done        | P0     | T-002      | 类型检查通过 |
 | T-005 | test   | 测试 RelayRoom DO 逻辑               | done        | P0     | T-004      | 8 测试全部通过 |
 | T-006 | feat   | 实现 index.ts 路由和 WS 升级         | done        | P0     | T-002, T-004 | 类型检查通过, admin-console.ts 创建 |
-| T-007 | test   | 测试 index.ts 路由                   | in-progress | P0     | T-006      |      |
-| T-008 | feat   | 实现 admin-console.ts 管理页面       | not-started | P1     | T-004      |      |
-| T-009 | test   | 测试 admin-console.ts                | not-started | P1     | T-008      |      |
+| T-007 | test   | 测试 index.ts 路由                   | done        | P0     | T-006      | 7 测试全部通过 |
+| T-008 | feat   | 实现 admin-console.ts 管理页面       | done        | P1     | T-004      | 已随 T-006 实现 |
+| T-009 | test   | 测试 admin-console.ts                | in-progress | P1     | T-008      |      |
 
 ---
 
