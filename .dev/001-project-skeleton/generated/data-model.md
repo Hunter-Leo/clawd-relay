@@ -332,6 +332,7 @@ AGENT_IDS = Literal[
 
 ```python
 SESSION_STATES = Literal[
+    "running",        # Agent 运行中（Claude Code 活跃状态）
     "thinking",       # 模型思考/处理中
     "working",        # 使用工具
     "idle",           # 空闲

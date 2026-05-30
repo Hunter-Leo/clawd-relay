@@ -11,4 +11,11 @@ dependencies = [
 ]
 
 [project.scripts]
-relay = "bridge.main:main"
+relay = "clawd_relay_bridge.main:main"
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv]
+dev-dependencies = ["pytest>=8.0"]

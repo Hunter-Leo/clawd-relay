@@ -1,9 +1,7 @@
-[project]
-name = "clawd-relay"
-version = "0.1.0"
-description = "Clawd Relay — Cloud event relay for AI Agent hooks"
-requires-python = ">=3.12"
-dependencies = []
-
 [tool.uv.workspace]
 members = ["bridge"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
