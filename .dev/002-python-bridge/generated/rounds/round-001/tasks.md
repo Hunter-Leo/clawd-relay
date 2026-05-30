@@ -10,8 +10,8 @@
 | T-004 | test | WebSocket 客户端单元测试             | done        | P0       | T-003      | 8 tests: hello/send/keepalive/permission_response/no_clients/timeout/disconnect |
 | T-005 | feat | 实现 HTTP 服务器 (server.py)         | done        | P0       | T-003      | FastAPI app: /state (200/probe 204) /permission (200/204/408) with CORS |
 | T-006 | test | HTTP 服务器单元测试                  | done        | P0       | T-005      | 9 tests: state/permission endpoints, probe, CORS, validation |
-| T-007 | feat | 实现主入口 (main.py)                 | in-progress | P0       | T-001, T-003, T-005 | |
-| T-008 | test | 主入口及集成测试                     | not-started | P0       | T-007      |       |
+| T-007 | feat | 实现主入口 (main.py)                 | done        | P0       | T-001, T-003, T-005 | CLI arg parsing + async_main orchestration + signal handler + graceful shutdown |
+| T-008 | test | 主入口及集成测试                     | done        | P0       | T-007      | 9 tests: arg parsing, async assembly, token regeneration logic |
 
 **Status:** `not-started` · `in-progress` · `done` · `blocked`
 
