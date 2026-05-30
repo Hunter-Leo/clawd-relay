@@ -108,6 +108,24 @@ class TestPermissionEndpoint:
         resp = client.post("/permission", json={"type": "permission_request", "device": {}})
         assert resp.status_code == 422
 
+    def test_permission_timeout_returns_408(self, client, ws_client):
+        """PermissionTimeout should return 408."""
+        import json
+        from clawd_relay_bridge.ws_client import PermissionTimeout
+        ws_client.wait_for_permission = AsyncMock(side_effect=PermissionTimeout("timed out"))
+        body = {
+            "type": "permission_request",
+            "device": {"id": "dev-001", "host": "test", "platform": "darwin", "bridgeVersion": "0.1.0"},
+            "permissionId": "perm-timeout",
+            "prompt": "Allow?",
+            "toolName": "Bash",
+            "toolInput": {},
+        }
+        resp = client.post("/permission", json=body)
+        assert resp.status_code == 408
+        data = resp.json()
+        assert data["error"] == "timeout"
+
 
 class TestCORS:
     """Tests for CORS configuration."""
@@ -115,7 +133,7 @@ class TestCORS:
     def test_options_has_cors_headers(self, client):
         """OPTIONS preflight should include CORS headers."""
         resp = client.options("/state", headers={
-            "Origin": "http://localhost:23555",
+            "Origin": "http://127.0.0.1:23555",
             "Access-Control-Request-Method": "POST",
         })
         assert resp.status_code == 200

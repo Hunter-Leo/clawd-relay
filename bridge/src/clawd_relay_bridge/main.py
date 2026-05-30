@@ -5,9 +5,12 @@ the Uvicorn server, and handles graceful shutdown on SIGINT/SIGTERM.
 """
 import argparse
 import asyncio
+import json
 import logging
 import os
+import platform
 import signal
+import socket
 import sys
 
 import uvicorn
@@ -63,8 +66,37 @@ def _resolve_device_id() -> str:
     env_id = os.environ.get(DEVICE_ID_ENV)
     if env_id:
         return env_id
-    import platform
     return platform.node() or "unknown"
+
+
+def _find_free_port(preferred: int, fallback_range: list[int]) -> int:
+    """Try ports in order, returning the first available one.
+
+    Args:
+        preferred: First port to try.
+        fallback_range: Additional ports to try if preferred is taken.
+
+    Returns:
+        The first free port found.
+    """
+    candidates = [preferred] + [p for p in fallback_range if p != preferred]
+    for port in candidates:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    msg = f"No free port in range {candidates[0]}-{candidates[-1]}"
+    raise RuntimeError(msg)
+
+
+def _save_port(port: int, data_dir: str) -> None:
+    """Persist the selected port for hook script discovery."""
+    path = os.path.join(data_dir, "port.json")
+    os.makedirs(data_dir, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump({"port": port}, f)
 
 
 async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
@@ -97,7 +129,9 @@ async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
 
     app = create_app(ws_client)
 
-    port = args.port or DEFAULT_PORT_RANGE[0]
+    port = _find_free_port(args.port or DEFAULT_PORT_RANGE[0], DEFAULT_PORT_RANGE)
+    _save_port(port, data_dir)
+    logger.info("Bridge listening on 127.0.0.1:%d", port)
     config = uvicorn.Config(
         app,
         host="127.0.0.1",

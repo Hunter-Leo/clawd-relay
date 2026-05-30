@@ -16,7 +16,7 @@ from clawd_relay_bridge.ws_client import WebSocketClient, PermissionTimeout
 
 logger = logging.getLogger(__name__)
 
-PROBE_TIMEOUT: float = 600.0  # 10 minutes for permission wait
+PERMISSION_TIMEOUT: float = 300.0  # 5 minutes for permission wait
 
 
 def create_app(ws_client: WebSocketClient) -> FastAPI:
@@ -33,7 +33,7 @@ def create_app(ws_client: WebSocketClient) -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origin_regex=r"https?://(127\.0\.0\.1|localhost)(:\d+)?",
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -75,7 +75,7 @@ def create_app(ws_client: WebSocketClient) -> FastAPI:
         # Wait for permission response
         try:
             result = await ws_client.wait_for_permission(
-                msg.permission_id, timeout=PROBE_TIMEOUT
+                msg.permission_id, timeout=PERMISSION_TIMEOUT
             )
         except PermissionTimeout:
             return Response(
