@@ -21,7 +21,7 @@ Agent → clawd-hook.js → Bridge (Python, localhost)
 | Directory | Language | Role |
 |-----------|----------|------|
 | `bridge/` | Python 3.12+ (FastAPI) | Local bridge: HTTP server for hooks, WS client to Worker |
-| `bridge/src/bridge/hooks/` | JavaScript (Node.js) | Hook scripts for Claude Code event collection |
+| `bridge/src/clawd_relay_bridge/hooks/` | JavaScript (Node.js) | Hook scripts for Claude Code event collection |
 | `worker/` | TypeScript (Hono, DO) | Cloudflare Worker: WebSocket relay, room management |
 | `web/` | Preact + Vite + Tailwind | Web client: device dashboard, permission approval |
 | `packages/types/` | TypeScript | Shared protocol types (aligned with bridge/schemas.py) |
@@ -78,9 +78,9 @@ npm -w web test            # 13 tests
 ### Hook Scripts
 
 ```bash
-node --test bridge/src/bridge/hooks/*.test.js  # 36 tests
-node bridge/src/bridge/hooks/install.js         # Manual install
-node bridge/src/bridge/hooks/install.js --uninstall  # Manual uninstall
+node --test bridge/src/clawd_relay_bridge/hooks/*.test.js  # 36 tests
+node bridge/src/clawd_relay_bridge/hooks/install.js         # Manual install
+node bridge/src/clawd_relay_bridge/hooks/install.js --uninstall  # Manual uninstall
 ```
 
 ### Types

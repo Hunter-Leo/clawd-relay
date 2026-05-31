@@ -115,7 +115,7 @@ def _save_port(port: int, data_dir: str) -> None:
 
 def _install_script() -> str:
     """Resolve the absolute path to the hook install.js script."""
-    return os.path.join(os.path.dirname(__file__), "..", "bridge", "hooks", "install.js")
+    return os.path.join(os.path.dirname(__file__), "hooks", "install.js")
 
 
 def _install_hooks() -> None:

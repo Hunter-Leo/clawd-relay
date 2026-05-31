@@ -97,24 +97,35 @@ Clawd Relay streams **Claude Code** hook events through a local bridge to the cl
 
 ## Quick Start
 
-### 1. Install the Bridge
+### Prerequisites
+
+| Component | Requires |
+|-----------|----------|
+| Bridge | Python 3.12+ with [uv](https://docs.astral.sh/uv/) |
+| Hook scripts | Node.js (built-in modules only, zero deps) |
+| Worker (dev) | Node.js 20+ |
+| Web (dev) | Node.js 20+ |
+
+### 1. Install the Relay
 
 ```bash
-# Requires Python 3.12+ and uv
-git clone https://github.com/your-org/clawd-relay
+git clone https://github.com/Hunter-Leo/clawd-relay
 cd clawd-relay
 
-# Install JS dependencies (for hook scripts and web)
-npm install
+# Hook scripts have zero external dependencies — ready to use.
+# For Bridge development, install Python dependencies:
+cd bridge && uv sync && cd ..
 ```
 
 ### 2. Start the Worker locally
 
 ```bash
 cd worker
-npm run dev
+npm install && npm run dev
 # → http://localhost:8787
 ```
+
+> Bridge and hook scripts don't need npm. `npm install` is only required for developing the Worker or Web client.
 
 ### 3. Create a relay token
 
@@ -275,7 +286,7 @@ clawd-relay/
 │   │   ├── qr_output.py             # QR code rendering (ascii/image/none)
 │   │   ├── schemas.py               # Pydantic models (message protocol)
 │   │   └── ws_client.py             # WebSocket client (reconnect, heartbeat)
-│   └── src/bridge/hooks/
+│   └── src/clawd_relay_bridge/hooks/
 │       ├── clawd-hook.js            # Hook event handler (state + permission)
 │       ├── install.js               # Hook installer/uninstaller
 │       └── server-config.js         # Bridge port discovery
@@ -316,7 +327,7 @@ clawd-relay/
 ### Prerequisites
 
 - Python 3.12+ with [uv](https://docs.astral.sh/uv/)
-- Node.js 20+ with npm
+- Node.js 20+ (for Worker/Web dev)
 - [wrangler](https://developers.cloudflare.com/workers/wrangler/) (for Worker deployment)
 
 ### Running All Tests
@@ -326,7 +337,7 @@ clawd-relay/
 cd bridge && uv run pytest
 
 # Hook scripts (Node.js) — 36 tests
-node --test bridge/src/bridge/hooks/*.test.js
+node --test bridge/src/clawd_relay_bridge/hooks/*.test.js
 
 # Worker (TypeScript) — 28 tests
 npm -w worker test
@@ -351,6 +362,8 @@ uv run ruff check src/                 # Lint
 ```
 
 ### Local Development Workflow
+
+> `npm install` is only needed once. Run it from the worker or web directory when setting up for the first time.
 
 ```bash
 # Terminal 1: Worker
