@@ -100,7 +100,8 @@ class WebSocketClient:
 
     async def _connect_impl(self) -> websockets.WebSocketClientProtocol:
         """Establish a raw WebSocket connection. Override in tests."""
-        ws_url = f"{self._relay_url}/relay/connect?token={self._token}"
+        ws_url = self._relay_url.replace("https://", "wss://").replace("http://", "ws://")
+        ws_url = f"{ws_url}/relay/connect?token={self._token}"
         logger.info("Connecting to %s", ws_url)
         return await websockets.connect(ws_url)
 

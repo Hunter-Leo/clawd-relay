@@ -130,6 +130,12 @@ class WebSocketManager {
     ws.onopen = () => {
       conn.status = "connected";
       conn.retries = 0;
+      // Send hello to classify this connection as a client with the DO
+      ws.send(JSON.stringify({
+        type: "hello",
+        token,
+        device: { id: `web-${token.slice(0, 8)}`, host: "web-client", platform: "darwin", bridgeVersion: "0.1.0" },
+      }));
       this.emit("connected");
     };
 

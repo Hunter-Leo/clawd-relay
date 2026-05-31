@@ -33,5 +33,9 @@ Thumbs.db
 # OMC
 .omc/
 
+# Wrangler
+worker/.wrangler/
+worker/.dev.vars
+
 # uv
 uv.lock

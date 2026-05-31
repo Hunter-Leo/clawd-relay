@@ -21,25 +21,25 @@ describe("index.ts routes", () => {
 		expect(data).toHaveProperty("error");
 	});
 
-	it("should return 503 on /admin/token without ADMIN_SECRET", async () => {
+	it("should return 403 on /admin/token without Authorization", async () => {
 		const res = await SELF.fetch(new Request("http://fake/admin/token", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ label: "test" }),
 		}));
-		expect(res.status).toBe(503);
+		expect(res.status).toBe(403);
 	});
 
-	it("should return 503 on /admin/tokens without ADMIN_SECRET", async () => {
+	it("should return 403 on /admin/tokens without Authorization", async () => {
 		const res = await SELF.fetch(new Request("http://fake/admin/tokens"));
-		expect(res.status).toBe(503);
+		expect(res.status).toBe(403);
 	});
 
-	it("should return 503 on /admin/token/:id without ADMIN_SECRET", async () => {
+	it("should return 403 on /admin/token/:id without Authorization", async () => {
 		const res = await SELF.fetch(new Request("http://fake/admin/token/test123", {
 			method: "DELETE",
 		}));
-		expect(res.status).toBe(503);
+		expect(res.status).toBe(403);
 	});
 
 	it("should return HTML on GET /admin", async () => {
