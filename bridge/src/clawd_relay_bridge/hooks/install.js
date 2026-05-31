@@ -28,11 +28,15 @@ var HOOK_EVENTS = [
   'SubagentStart', 'SubagentStop',
   'PreCompact', 'PostCompact',
   'Notification', 'Elicitation',
-  'WorktreeCreate',
+  'WorktreeCreate', 'permission_ask',
 ];
 
 function buildEntry(nodeBin, hookScript, event) {
   var cmd = nodeBin + ' "' + hookScript + '" ' + event + ' # ' + MARKER;
+  // permission_ask is blocking — CC waits for stdout "allow"/"deny" decision
+  if (event === 'permission_ask') {
+    return { type: 'command', command: cmd, timeout: 300, async: false };
+  }
   return { type: 'command', command: cmd, timeout: 5, async: true };
 }
 

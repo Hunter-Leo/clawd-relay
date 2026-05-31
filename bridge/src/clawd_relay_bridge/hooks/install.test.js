@@ -19,7 +19,7 @@ const EVENTS = [
   'SubagentStart', 'SubagentStop',
   'PreCompact', 'PostCompact',
   'Notification', 'Elicitation',
-  'WorktreeCreate',
+  'WorktreeCreate', 'permission_ask',
 ];
 
 describe('buildEntry', () => {
@@ -31,6 +31,14 @@ describe('buildEntry', () => {
     assert.strictEqual(entry.type, 'command');
     assert.strictEqual(entry.timeout, 5);
     assert.strictEqual(entry.async, true);
+  });
+
+  it('permission_ask entry is blocking with longer timeout', () => {
+    const entry = install.buildEntry('/usr/bin/node', '/hooks/clawd-hook.js', 'permission_ask');
+    assert.ok(entry.command.includes('permission_ask'));
+    assert.strictEqual(entry.type, 'command');
+    assert.strictEqual(entry.timeout, 300);
+    assert.strictEqual(entry.async, false);
   });
 });
 
