@@ -108,14 +108,31 @@ Clawd Relay streams **Claude Code** hook events through a local bridge to the cl
 
 ### 1. Install the Relay
 
+**Install globally via uv (recommended):**
+
+```bash
+uv tool install --package clawd-relay-bridge \
+  git+https://github.com/Hunter-Leo/clawd-relay.git
+relay --relay-url https://relay.example.com --token <token>
+```
+
+**Or run without installing:**
+
+```bash
+uvx --package clawd-relay-bridge relay \
+  --relay-url https://relay.example.com --token <token>
+```
+
+**Or clone for local development:**
+
 ```bash
 git clone https://github.com/Hunter-Leo/clawd-relay
-cd clawd-relay
-
-# Hook scripts have zero external dependencies — ready to use.
-# For Bridge development, install Python dependencies:
-cd bridge && uv sync && cd ..
+cd clawd-relay/bridge
+uv sync
+uv run relay --relay-url https://relay.example.com --token <token>
 ```
+
+> Hook scripts are bundled inside the Python package — no separate installation needed.
 
 ### 2. Start the Worker locally
 
@@ -218,7 +235,12 @@ curl -X POST https://relay.009912.xyz/admin/token \
   -d '{"label":"production-bridge"}'
 
 # 3. Start Bridge on your machine
-uv run relay --relay-url https://relay.009912.xyz --token <token>
+# Install once, then run:
+uv tool install --package clawd-relay-bridge git+https://github.com/Hunter-Leo/clawd-relay.git
+relay --relay-url https://relay.009912.xyz --token <token>
+
+# Or run without installing:
+# uvx --package clawd-relay-bridge relay --relay-url https://relay.009912.xyz --token <token>
 
 # 4. Open web client
 #    https://clawdrelay.009912.xyz/?token=<token>&relay_url=https://relay.009912.xyz

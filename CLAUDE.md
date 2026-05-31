@@ -52,8 +52,19 @@ Agent → clawd-hook.js → Bridge (Python, localhost)
 ### Python Bridge
 
 ```bash
+# Development (local repo)
 cd bridge
 uv run relay [--relay-url <url>] [--token <token>] [--qr-output ascii|image|none]
+
+# Production (install from GitHub — hook scripts included via package data)
+uv tool install --package clawd-relay-bridge git+https://github.com/Hunter-Leo/clawd-relay.git
+relay --relay-url https://relay.example.com --token <token>
+
+# Or run without installing
+uvx --package clawd-relay-bridge relay --relay-url https://relay.example.com --token <token>
+
+# Tests
+cd bridge
 uv run pytest                          # All 96 tests
 uv run pytest tests/test_server.py -v  # Single file
 uv run ruff check src/                 # Lint
