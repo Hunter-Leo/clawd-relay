@@ -12,7 +12,15 @@ const os = require('os');
 const install = require('./install');
 
 const MARKER = 'clawd-relay-hook';
-const EVENTS = ['Elicitation', 'Notification', 'PostToolUse'];
+const EVENTS = [
+  'SessionStart', 'SessionEnd', 'UserPromptSubmit',
+  'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
+  'Stop', 'StopFailure',
+  'SubagentStart', 'SubagentStop',
+  'PreCompact', 'PostCompact',
+  'Notification', 'Elicitation',
+  'WorktreeCreate',
+];
 
 describe('buildEntry', () => {
   it('includes the marker string', () => {

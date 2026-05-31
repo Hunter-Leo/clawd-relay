@@ -21,7 +21,15 @@ var CLAUDE_SETTINGS_PATH = path.join(
   '.claude',
   'settings.json',
 );
-var HOOK_EVENTS = ['Elicitation', 'Notification', 'PostToolUse'];
+var HOOK_EVENTS = [
+  'SessionStart', 'SessionEnd', 'UserPromptSubmit',
+  'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
+  'Stop', 'StopFailure',
+  'SubagentStart', 'SubagentStop',
+  'PreCompact', 'PostCompact',
+  'Notification', 'Elicitation',
+  'WorktreeCreate',
+];
 
 function buildEntry(nodeBin, hookScript, event) {
   var cmd = nodeBin + ' "' + hookScript + '" ' + event + ' # ' + MARKER;
