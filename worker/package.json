@@ -2,17 +2,21 @@
   "name": "clawd-relay-worker",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clawd-relay/types": "*",
     "hono": "^4.7"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.10",
+    "@cloudflare/workers-types": "^4.0",
     "typescript": "^5.7",
-    "wrangler": "^4.0",
-    "@cloudflare/workers-types": "^4.0"
+    "vitest": "^4.1.7",
+    "wrangler": "^4.0"
   }
 }
