@@ -4,8 +4,8 @@
 
 | ID    | 类型   | 任务名称                                | 状态        | 优先级 | 依赖 | 备注 |
 |-------|--------|-----------------------------------------|-------------|--------|------|------|
-| T-001 | feat   | 向 RelayRoom fetch handler 添加注册表路由 | in-progress | P0     | -    |      |
-| T-002 | feat   | 更新 index.ts 使用注册表 DO             | not-started | P0     | T-001 |      |
+| T-001 | feat   | 向 RelayRoom fetch handler 添加注册表路由 | done        | P0     | -    | 类型检查通过 |
+| T-002 | feat   | 更新 index.ts 使用注册表 DO             | in-progress | P0     | T-001 |      |
 | T-003 | test   | 测试注册表 DO 功能                      | not-started | P0     | T-002 |      |
 
 ---
