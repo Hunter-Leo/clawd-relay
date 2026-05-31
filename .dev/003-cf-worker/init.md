@@ -97,8 +97,16 @@ Admin API 使用 JSON 格式：
 
 ## Action Items
 
+**Prerequisite documents** (if needed — see Phase 02 & 03):
+- [ ] `generated/research.md` — Hono WebSocket + Durable Object 技术调研（如需要）
+- [ ] `generated/algorithm-design.md` — DO 房间消息路由与离线缓冲算法设计
+
+**Optional tools discovered** (use if relevant):
+- [ ] 使用 `oh-my-claudecode:designer` 代理设计 Admin 控制台页面 UI/UX — 有前端管理页面需求，designer 可帮助设计美观实用的响应式页面
+- [ ] 使用 `oh-my-claudecode:security-reviewer` 代理审查 Token 鉴权与 Admin API 安全 — 涉及 WebSocket 认证和管理后台，安全审计有助于提前发现问题
+
 **Round artifacts** (maintained across rounds):
-- [ ] `issues.md`
+- [ ] `issues.md` — 跨轮次问题记录（Phase 07 创建，后续轮次读取）
 
 **Required documents** (always, in order):
 - [ ] `generated/rounds/round-001/plan.md` — Phase 04
