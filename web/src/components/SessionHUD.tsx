@@ -14,33 +14,30 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  working: "bg-green-400 shadow-[0_0_6px_rgba(34,197,94,0.4)]",
-  thinking: "bg-yellow-400 animate-breathe",
-  idle: "bg-zinc-500",
-  error: "bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.4)]",
+  working: "text-green-500",
+  thinking: "text-amber-500 pulse-thinking",
+  idle: "text-zinc-600",
+  error: "text-red-500 pulse-error",
 };
 
 export function SessionHUD({ devices, onSelect }: Props) {
   if (devices.length === 0) return null;
 
   return (
-    <div class="fixed bottom-0 left-0 right-0 md:right-5 md:left-auto md:bottom-5 md:w-auto md:rounded-xl border-t md:border border-zinc-800/50 overflow-x-auto"
-         style={{ background: "rgba(9,9,11,0.85)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
-      <div class="flex md:flex-col gap-0 md:gap-0.5 p-1.5 md:p-2 min-w-0">
+    <div class="fixed bottom-0 left-0 right-0 md:left-auto md:right-0 md:top-12 md:bottom-auto bg-[#0c0c0c]/95 border-t md:border-t-0 md:border-l border-zinc-800 md:w-[180px] overflow-x-auto">
+      <div class="flex md:flex-col gap-0 p-1 md:p-2">
         {devices.map((d) => {
-          const agentIcon = AGENT_META[d.agentId]?.icon ?? "?";
-          const dotColor = d.online ? (STATUS_COLORS[d.status] ?? "bg-zinc-500") : "bg-zinc-600";
+          const icon = AGENT_META[d.agentId]?.icon ?? "?";
+          const color = d.online ? (STATUS_COLORS[d.status] ?? "text-zinc-600") : "text-zinc-700";
 
           return (
             <button
               key={d.id}
               onClick={() => onSelect(d.id)}
-              class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-lg transition-all duration-150 whitespace-nowrap flex-shrink-0"
-              title={`${d.host} — ${d.status}`}
+              class={`flex items-center gap-1.5 px-2 py-1 text-mono-xs ${color} hover:text-zinc-300 transition-colors whitespace-nowrap shrink-0 text-left`}
             >
-              <span class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
-              <span class="flex-shrink-0 leading-none">{agentIcon}</span>
-              <span class="hidden md:inline truncate max-w-[80px]">{d.host}</span>
+              <span>{icon}</span>
+              <span class="hidden md:inline truncate">{d.host}</span>
             </button>
           );
         })}

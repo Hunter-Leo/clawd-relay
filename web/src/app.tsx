@@ -165,25 +165,24 @@ function InnerApp() {
   return (
     <div class="min-h-[100dvh] flex flex-col">
       {/* Top bar */}
-      <header class="top-bar flex items-center justify-between px-4 md:px-6 py-3 sticky top-0 z-40">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-semibold text-zinc-100">Clawd Relay</span>
-        </div>
+      <header class="top-bar flex items-center justify-between px-4 py-2">
         <div class="flex items-center gap-4">
+          <span class="text-mono-sm text-zinc-300 font-semibold tracking-wide">clawd relay</span>
+        </div>
+        <div class="flex items-center gap-3">
           <ConnectionIndicator status={state.connectionStatus} />
           <DNDToggle dnd={state.settings.dnd} onToggle={handleDndToggle} />
           <button
             onClick={() => setShowSettings(!showSettings)}
-            class="text-base text-zinc-500 hover:text-zinc-200 hover:rotate-90 transition-all duration-300"
-            title="Settings"
+            class="text-mono-sm text-zinc-600 hover:text-zinc-400 transition-colors"
           >
-            &#9881;
+            [set]
           </button>
         </div>
       </header>
 
       {/* Main content */}
-      <main class="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+      <main class="flex-1 px-4 md:px-6 py-4 max-w-5xl mx-auto w-full">
         <ErrorBoundary>
           {state.devices.size === 0 ? (
             <EmptyState onConnect={handleTokenConnect} />

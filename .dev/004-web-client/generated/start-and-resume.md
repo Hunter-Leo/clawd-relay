@@ -29,10 +29,11 @@
 ## Round History
 **Current Round:** 2
 
-### Round 2 (in-progress)
-- **Status:** ▶ in-progress
+### Round 2 (complete)
+- **Status:** ✅ done
 - **Location:** `generated/rounds/round-002/`
-- **Tasks:** 10 planned, 0 completed
+- **Tasks:** 10 planned, 10 completed, 0 deferred
+- **Summary:** Terminal Native 设计系统重建。全局等宽字体、CRT 黑底 #0c0c0c、琥珀强调色 #f59e0b。去除所有圆角卡片和 daisyUI 组件，改用 flat 布局 + hairline 分隔线 + 纯文字状态标签。
 
 ### Round 1 (complete)
 
