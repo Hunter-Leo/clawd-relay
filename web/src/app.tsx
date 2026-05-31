@@ -36,6 +36,9 @@ function InnerApp() {
     settings: loadSettings(),
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [serverUrl, setServerUrl] = useState(
+    () => new URLSearchParams(window.location.search).get("relay_url") ?? "",
+  );
   const { setMode } = useTheme();
   const { setLocale } = useI18n();
 
@@ -151,6 +154,13 @@ function InnerApp() {
     getWSManager().connect(token);
   }, []);
 
+  const handleRelayUrlChange = useCallback((url: string) => {
+    setServerUrl(url);
+    if (url) {
+      getWSManager().setRelayUrl(url);
+    }
+  }, []);
+
   const currentPermission = state.permissions[0];
   const hudDevices = Array.from(state.devices.entries())
     .filter(([_, d]) => d.sessions.length > 0)
@@ -185,7 +195,7 @@ function InnerApp() {
       <main class="flex-1 px-4 md:px-6 py-4 max-w-5xl mx-auto w-full">
         <ErrorBoundary>
           {state.devices.size === 0 ? (
-            <EmptyState onConnect={handleTokenConnect} />
+            <EmptyState onConnect={handleTokenConnect} onRelayUrlChange={handleRelayUrlChange} serverUrl={serverUrl} />
           ) : (
             <Dashboard devices={state.devices} />
           )}

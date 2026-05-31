@@ -36,10 +36,10 @@ function calcDelay(retries: number): number {
 class WebSocketManager {
   private connections: Map<string, WSConnection> = new Map();
   private listeners: Map<string, Set<Listener<any>>> = new Map();
-  private relayUrl: string;
+  private _relayUrl: string;
 
   constructor() {
-    this.relayUrl = getRelayUrl();
+    this._relayUrl = getRelayUrl();
     const tokens = parseTokens();
     for (const token of tokens) {
       this.connect(token);
@@ -72,6 +72,14 @@ class WebSocketManager {
 
   private emit<T extends keyof EventMap>(event: T, ...args: EventMap[T]) {
     this.getOrCreateEventTarget(event).forEach((fn) => fn(...args));
+  }
+
+  get relayUrl(): string {
+    return this._relayUrl;
+  }
+
+  setRelayUrl(url: string) {
+    this._relayUrl = url;
   }
 
   connect(token: string) {
