@@ -130,12 +130,12 @@ function InnerApp() {
     dispatch({ type: "CLEAR_PERMISSION", permissionId });
   }, []);
 
-  const handleAlwaysAllow = useCallback((permissionId: string, toolName: string) => {
+  const handleAlwaysAllow = useCallback((permissionId: string, toolName: string, deviceId: string) => {
     getWSManager().sendAll({ type: "permission_response", permissionId, approved: true });
     getWSManager().sendAll({
       type: "always_allow",
       rule: {
-        deviceId: getWSManager().tokens[0] ?? "",
+        deviceId,
         toolName,
         pattern: "*",
         createdAt: Date.now(),

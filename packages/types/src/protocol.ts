@@ -21,6 +21,9 @@ export interface SessionInfo {
   model: string | null;
   toolName: string | null;
   toolInput: Record<string, unknown> | null;
+  toolUseId?: string;
+  failureKind?: string;
+  apiErrorType?: string;
   updatedAt: number; // epoch ms
 }
 

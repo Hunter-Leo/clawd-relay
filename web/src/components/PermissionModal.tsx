@@ -6,7 +6,7 @@ interface Props {
   request: PermissionRequestMsg;
   onAllow: (permissionId: string) => void;
   onDeny: (permissionId: string) => void;
-  onAlwaysAllow: (permissionId: string, toolName: string) => void;
+  onAlwaysAllow: (permissionId: string, toolName: string, deviceId: string) => void;
   onElicitationSubmit: (permissionId: string, answers: Record<string, string>) => void;
   onSuggestionSelect: (permissionId: string, suggestion: string) => void;
   stackCount: number;
@@ -102,7 +102,7 @@ export function PermissionModal({ request, onAllow, onDeny, onAlwaysAllow, onEli
                 [deny]
               </button>
               {stackCount <= 1 && (
-                <button onClick={() => onAlwaysAllow(request.permissionId, request.toolName)} class="text-mono-sm text-zinc-600 hover:text-amber-500 px-3 py-1.5 transition-colors">
+                <button onClick={() => onAlwaysAllow(request.permissionId, request.toolName, request.device.id)} class="text-mono-sm text-zinc-600 hover:text-amber-500 px-3 py-1.5 transition-colors">
                   [always allow]
                 </button>
               )}

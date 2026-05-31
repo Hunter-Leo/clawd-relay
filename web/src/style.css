@@ -119,6 +119,8 @@ body::after {
 .dot-error { background-color: var(--accent-red); }
 .dot-online { background-color: var(--accent-green); }
 .dot-offline { background-color: var(--text-tertiary); }
+.dot-notification { background-color: var(--accent-blue); }
+.dot-sleeping { background-color: var(--accent-purple); }
 .dot-attention { background-color: var(--accent-blue); }
 .dot-running { background-color: var(--accent-green); }
 

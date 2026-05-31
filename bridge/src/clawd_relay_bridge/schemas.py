@@ -60,6 +60,9 @@ class SessionInfo(BaseModel):
     model: str | None = None
     tool_name: str | None = Field(None, alias="toolName")
     tool_input: dict | None = Field(None, alias="toolInput")
+    tool_use_id: str | None = Field(None, alias="toolUseId")
+    failure_kind: str | None = Field(None, alias="failureKind")
+    api_error_type: str | None = Field(None, alias="apiErrorType")
     updated_at: int = Field(alias="updatedAt")
 
 # ─── Token ─────────────────────────────────────────────────────────────────
