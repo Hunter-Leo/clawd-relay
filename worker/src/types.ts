@@ -36,4 +36,5 @@ export interface Env {
 export const STORAGE_KEYS = {
 	tokenPrefix: "token:",
 	tokenIds: "token_ids",
+	alwaysAllowRules: "always_allow_rules",
 } as const;

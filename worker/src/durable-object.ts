@@ -9,6 +9,7 @@
  * - Heartbeat detection via DO alarms
  */
 import type { TokenRecord, Env } from "./types";
+import type { AlwaysAllowRule } from "@clawd-relay/types";
 import { STORAGE_KEYS } from "./types";
 
 // ─── RingBuffer ────────────────────────────────────────────────────────────
@@ -59,12 +60,18 @@ export class RelayRoom implements DurableObject {
 
 	// Mapping from client ws -> deviceId for disconnection tracking
 	private readonly clientDevices = new WeakMap<WebSocket, string>();
+	private alwaysAllowRules: AlwaysAllowRule[] = [];
 
 	constructor(
 		readonly state: DurableObjectState,
 		readonly env: Env,
 	) {
 		this.storage = state.storage;
+		// Load persisted always_allow rules
+		state.blockConcurrencyWhile(async () => {
+			const rules = await this.storage.get<AlwaysAllowRule[]>(STORAGE_KEYS.alwaysAllowRules);
+			if (rules) this.alwaysAllowRules = rules;
+		});
 	}
 
 	// ─── Admin API via fetch ───────────────────────────────────────────────
@@ -307,7 +314,17 @@ export class RelayRoom implements DurableObject {
 				break;
 			}
 
-			case "permission_request":
+			case "permission_request": {
+				// Check always_allow rules for auto-approval
+				const rule = this.findMatchingRule(msg);
+				if (rule) {
+					this.sendJson(ws, {
+						type: "permission_response",
+						permissionId: (msg as { permissionId?: string }).permissionId ?? "",
+						approved: true,
+					});
+					return;
+				}
 				this.offlineBuffer.push(msg as JsonValue);
 				if (this.clients.size === 0) {
 					this.sendJson(ws, {
@@ -318,6 +335,7 @@ export class RelayRoom implements DurableObject {
 					this.broadcastRaw(json);
 				}
 				break;
+			}
 
 			default:
 				break;
@@ -337,12 +355,17 @@ export class RelayRoom implements DurableObject {
 
 	// ─── Client message handler ────────────────────────────────────────────
 
-	private onClientMessage(_ws: WebSocket, ev: MessageEvent): void {
-		let msg: { type: string };
+	private async onClientMessage(_ws: WebSocket, ev: MessageEvent): Promise<void> {
+		let msg: { type: string; rule?: AlwaysAllowRule };
 		try {
-			msg = JSON.parse(ev.data as string) as { type: string };
+			msg = JSON.parse(ev.data as string) as { type: string; rule?: AlwaysAllowRule };
 		} catch {
 			return;
+		}
+
+		if (msg.type === "always_allow" && msg.rule) {
+			this.alwaysAllowRules.push(msg.rule);
+			await this.storage.put(STORAGE_KEYS.alwaysAllowRules, this.alwaysAllowRules);
 		}
 
 		if (
@@ -354,6 +377,16 @@ export class RelayRoom implements DurableObject {
 				this.sendJson(bridge, msg);
 			}
 		}
+	}
+
+	private findMatchingRule(request: Record<string, unknown>): AlwaysAllowRule | undefined {
+		const reqDevice = request.device as { id?: string } | undefined;
+		const reqToolName = request.toolName as string | undefined;
+		if (!reqToolName) return undefined;
+		return this.alwaysAllowRules.find(r =>
+			r.toolName === reqToolName &&
+			(!r.deviceId || !reqDevice?.id || r.deviceId === reqDevice.id)
+		);
 	}
 
 	private onClientClose(ws: WebSocket): void {
