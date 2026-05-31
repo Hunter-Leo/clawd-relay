@@ -5,6 +5,7 @@ import type {
   SessionInfo,
   PermissionRequestMsg,
   DNDChangeMsg,
+  AlwaysAllowRule,
 } from "@clawd-relay/types";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
@@ -35,7 +36,10 @@ export type AppAction =
   | { type: "CLEAR_PERMISSION"; permissionId: string }
   | { type: "CONNECTION_STATUS"; status: ConnectionStatus }
   | { type: "SETTINGS_UPDATE"; settings: Partial<Settings> }
-  | { type: "DND_CHANGE"; dnd: boolean };
+  | { type: "DND_CHANGE"; dnd: boolean }
+  | { type: "ADD_ALWAYS_ALLOW_RULE"; rule: AlwaysAllowRule }
+  | { type: "REMOVE_ALWAYS_ALLOW_RULE"; toolName: string; deviceId: string }
+  | { type: "SYNC_ALWAYS_ALLOW_RULES"; rules: AlwaysAllowRule[] };
 
 export interface AppState {
   devices: Map<string, DeviceState>;
@@ -43,6 +47,7 @@ export interface AppState {
   settings: Settings;
   connectionStatus: ConnectionStatus;
   error: string | null;
+  alwaysAllowRules: AlwaysAllowRule[];
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -61,6 +66,7 @@ export const initialState: AppState = {
   settings: DEFAULT_SETTINGS,
   connectionStatus: "disconnected",
   error: null,
+  alwaysAllowRules: [],
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -148,6 +154,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         settings: { ...state.settings, dnd: action.dnd },
+      };
+
+    case "ADD_ALWAYS_ALLOW_RULE":
+      return {
+        ...state,
+        alwaysAllowRules: [...state.alwaysAllowRules, action.rule],
+      };
+
+    case "REMOVE_ALWAYS_ALLOW_RULE":
+      return {
+        ...state,
+        alwaysAllowRules: state.alwaysAllowRules.filter(
+          (r) => !(r.toolName === action.toolName && r.deviceId === action.deviceId),
+        ),
+      };
+
+    case "SYNC_ALWAYS_ALLOW_RULES":
+      return {
+        ...state,
+        alwaysAllowRules: action.rules,
       };
 
     default:

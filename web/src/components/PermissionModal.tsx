@@ -1,3 +1,4 @@
+import { useState } from "preact/hooks";
 import type { PermissionRequestMsg } from "@clawd-relay/types";
 import { useI18n } from "../i18n/index";
 
@@ -5,12 +6,21 @@ interface Props {
   request: PermissionRequestMsg;
   onAllow: (permissionId: string) => void;
   onDeny: (permissionId: string) => void;
-  onAlwaysAllow: (permissionId: string) => void;
+  onAlwaysAllow: (permissionId: string, toolName: string) => void;
+  onElicitationSubmit: (permissionId: string, answers: Record<string, string>) => void;
+  onSuggestionSelect: (permissionId: string, suggestion: string) => void;
   stackCount: number;
 }
 
-export function PermissionModal({ request, onAllow, onDeny, onAlwaysAllow, stackCount }: Props) {
+export function PermissionModal({ request, onAllow, onDeny, onAlwaysAllow, onElicitationSubmit, onSuggestionSelect, stackCount }: Props) {
   const { t } = useI18n();
+  const questions = request.toolInput?.questions as Array<{ question: string }> | undefined;
+  const suggestions = request.suggestions as Array<{ type: string; label: string }> | undefined;
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  const handleElicitationSubmit = () => {
+    onElicitationSubmit(request.permissionId, answers);
+  };
 
   return (
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)" }}>
@@ -45,19 +55,62 @@ export function PermissionModal({ request, onAllow, onDeny, onAlwaysAllow, stack
           )}
         </div>
 
+        {/* Elicitation form */}
+        {questions && questions.length > 0 && (
+          <div class="px-4 py-3 space-y-3 border-b border-zinc-800/50">
+            <span class="text-mono-xs text-zinc-600 uppercase tracking-wider block">questions</span>
+            {questions.map((q, i) => (
+              <div key={i} class="space-y-1">
+                <label class="text-mono-sm text-zinc-400">{q.question}</label>
+                <input
+                  type="text"
+                  value={answers[q.question] ?? ""}
+                  onInput={(e) => setAnswers({ ...answers, [q.question]: (e.target as HTMLInputElement).value })}
+                  class="w-full bg-transparent text-mono-sm text-zinc-300 border border-zinc-800 px-2 py-1.5 focus:outline-none focus:border-amber-500/50"
+                  placeholder="..."
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Suggestions */}
+        {suggestions && suggestions.length > 0 && (
+          <div class="px-4 py-3 space-y-2 border-b border-zinc-800/50">
+            <span class="text-mono-xs text-zinc-600 uppercase tracking-wider block">suggestions</span>
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => onSuggestionSelect(request.permissionId, `suggestion:${i}`)}
+                class="block w-full text-left text-mono-sm text-amber-400 hover:bg-amber-500/10 px-2 py-1.5 border border-zinc-800 transition-colors"
+              >
+                {s.label ?? `suggestion ${i + 1}`}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Actions */}
         <div class="flex items-center justify-end gap-1 px-4 py-3">
-          <button onClick={() => onDeny(request.permissionId)} class="text-mono-sm text-zinc-600 hover:text-zinc-400 px-3 py-1.5 transition-colors">
-            [deny]
-          </button>
-          {stackCount <= 1 && (
-            <button onClick={() => onAlwaysAllow(request.permissionId)} class="text-mono-sm text-zinc-600 hover:text-amber-500 px-3 py-1.5 transition-colors">
-              [always allow]
+          {questions && questions.length > 0 ? (
+            <button onClick={handleElicitationSubmit} class="text-mono-sm text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-1.5 transition-colors">
+              [submit]
             </button>
+          ) : (
+            <>
+              <button onClick={() => onDeny(request.permissionId)} class="text-mono-sm text-zinc-600 hover:text-zinc-400 px-3 py-1.5 transition-colors">
+                [deny]
+              </button>
+              {stackCount <= 1 && (
+                <button onClick={() => onAlwaysAllow(request.permissionId, request.toolName)} class="text-mono-sm text-zinc-600 hover:text-amber-500 px-3 py-1.5 transition-colors">
+                  [always allow]
+                </button>
+              )}
+              <button onClick={() => onAllow(request.permissionId)} class="text-mono-sm text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-1.5 transition-colors">
+                [allow]
+              </button>
+            </>
           )}
-          <button onClick={() => onAllow(request.permissionId)} class="text-mono-sm text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-1.5 transition-colors">
-            [allow]
-          </button>
         </div>
 
         {stackCount > 1 && (

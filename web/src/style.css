@@ -99,6 +99,12 @@ body::after {
 .tag-sleeping {
   color: var(--accent-purple);
 }
+.tag-attention {
+  color: var(--accent-blue);
+}
+.tag-running {
+  color: var(--accent-green);
+}
 
 /* ── Status dot (small square instead of circle) ── */
 .dot {
@@ -113,6 +119,8 @@ body::after {
 .dot-error { background-color: var(--accent-red); }
 .dot-online { background-color: var(--accent-green); }
 .dot-offline { background-color: var(--text-tertiary); }
+.dot-attention { background-color: var(--accent-blue); }
+.dot-running { background-color: var(--accent-green); }
 
 /* ── State pulse ── */
 @keyframes pulse-thinking {

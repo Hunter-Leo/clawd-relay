@@ -12,6 +12,8 @@ const STATE_TAGS: Record<string, string> = {
   error: "tag-error",
   notification: "tag-notification",
   sleeping: "tag-sleeping",
+  attention: "tag-attention",
+  running: "tag-running",
 };
 
 const STATE_DOTS: Record<string, string> = {
@@ -21,6 +23,8 @@ const STATE_DOTS: Record<string, string> = {
   error: "dot-error pulse-error",
   notification: "dot-notification",
   sleeping: "dot-sleeping",
+  attention: "dot-attention",
+  running: "dot-running",
 };
 
 function truncate(s: string | null, n: number): string {

@@ -57,6 +57,10 @@ export interface PermissionResponseMsg {
   type: "permission_response";
   permissionId: string;
   approved: boolean;
+  /** Elicitation answers (keyed by question text). */
+  answers?: Record<string, string>;
+  /** Selected suggestion index. */
+  suggestion?: string;
 }
 
 export interface DNDChangeMsg {
@@ -66,11 +70,15 @@ export interface DNDChangeMsg {
 
 export interface AlwaysAllowMsg {
   type: "always_allow";
-  rule: {
-    deviceId: string;
-    toolName: string;
-    pattern?: string; // tool_input 匹配模式，默认 "*" 通配
-  };
+  rule: AlwaysAllowRule;
+}
+
+/** A persisted always-allow rule. */
+export interface AlwaysAllowRule {
+  deviceId: string;
+  toolName: string;
+  pattern?: string; // tool_input 匹配模式，默认 "*" 通配
+  createdAt: number; // epoch ms
 }
 
 // ─── DO Internal Messages (DO → Bridge, not broadcast) ────────────────────

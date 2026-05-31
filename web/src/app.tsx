@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useReducer } from "preact/hooks";
 import { appReducer, initialState } from "./state/store";
 import type { Settings } from "./state/store";
-import type { BroadcastMsg, DNDChangeMsg } from "@clawd-relay/types";
+import type { BroadcastMsg, DNDChangeMsg, AlwaysAllowMsg } from "@clawd-relay/types";
 import { getWSManager } from "./ws";
 import { ThemeProvider, useTheme } from "./theme/ThemeProvider";
 import { I18nProvider, useI18n } from "./i18n/index";
@@ -130,10 +130,28 @@ function InnerApp() {
     dispatch({ type: "CLEAR_PERMISSION", permissionId });
   }, []);
 
-  const handleAlwaysAllow = useCallback((permissionId: string) => {
+  const handleAlwaysAllow = useCallback((permissionId: string, toolName: string) => {
     getWSManager().sendAll({ type: "permission_response", permissionId, approved: true });
+    getWSManager().sendAll({
+      type: "always_allow",
+      rule: {
+        deviceId: getWSManager().tokens[0] ?? "",
+        toolName,
+        pattern: "*",
+        createdAt: Date.now(),
+      },
+    } as AlwaysAllowMsg);
     dispatch({ type: "CLEAR_PERMISSION", permissionId });
-    // TODO: persist always-allow rule
+  }, []);
+
+  const handleElicitationSubmit = useCallback((permissionId: string, answers: Record<string, string>) => {
+    getWSManager().sendAll({ type: "permission_response", permissionId, approved: true, answers });
+    dispatch({ type: "CLEAR_PERMISSION", permissionId });
+  }, []);
+
+  const handleSuggestionSelect = useCallback((permissionId: string, suggestion: string) => {
+    getWSManager().sendAll({ type: "permission_response", permissionId, approved: true, suggestion });
+    dispatch({ type: "CLEAR_PERMISSION", permissionId });
   }, []);
 
   const handleDndToggle = useCallback((dnd: boolean) => {
@@ -209,6 +227,8 @@ function InnerApp() {
           onAllow={handleAllow}
           onDeny={handleDeny}
           onAlwaysAllow={handleAlwaysAllow}
+          onElicitationSubmit={handleElicitationSubmit}
+          onSuggestionSelect={handleSuggestionSelect}
           stackCount={state.permissions.length}
         />
       )}

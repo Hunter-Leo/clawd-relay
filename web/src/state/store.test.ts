@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { appReducer, initialState } from "./store";
-import type { DeviceInfo, SessionInfo } from "@clawd-relay/types";
+import type { DeviceInfo, SessionInfo, AlwaysAllowRule } from "@clawd-relay/types";
 
 const mockDevice: DeviceInfo = {
   id: "dev-1",
@@ -152,5 +152,37 @@ describe("appReducer", () => {
   it("should handle DND_CHANGE", () => {
     const state = appReducer(initialState, { type: "DND_CHANGE", dnd: true });
     expect(state.settings.dnd).toBe(true);
+  });
+
+  it("should handle ADD_ALWAYS_ALLOW_RULE", () => {
+    const rule: AlwaysAllowRule = {
+      deviceId: "dev-1",
+      toolName: "Bash",
+      pattern: "*",
+      createdAt: Date.now(),
+    };
+    const state = appReducer(initialState, { type: "ADD_ALWAYS_ALLOW_RULE", rule });
+    expect(state.alwaysAllowRules).toHaveLength(1);
+    expect(state.alwaysAllowRules[0].toolName).toBe("Bash");
+  });
+
+  it("should handle REMOVE_ALWAYS_ALLOW_RULE", () => {
+    const rule: AlwaysAllowRule = {
+      deviceId: "dev-1",
+      toolName: "Bash",
+      pattern: "*",
+      createdAt: Date.now(),
+    };
+    const s1 = appReducer(initialState, { type: "ADD_ALWAYS_ALLOW_RULE", rule });
+    const s2 = appReducer(s1, { type: "REMOVE_ALWAYS_ALLOW_RULE", toolName: "Bash", deviceId: "dev-1" });
+    expect(s2.alwaysAllowRules).toHaveLength(0);
+  });
+
+  it("should handle SYNC_ALWAYS_ALLOW_RULES", () => {
+    const rules: AlwaysAllowRule[] = [
+      { deviceId: "dev-1", toolName: "Edit", pattern: "*", createdAt: Date.now() },
+    ];
+    const state = appReducer(initialState, { type: "SYNC_ALWAYS_ALLOW_RULES", rules });
+    expect(state.alwaysAllowRules).toHaveLength(1);
   });
 });
