@@ -22,9 +22,9 @@ bridge/src/bridge/hooks/
 ### 步骤 1 — 端口发现工具 (`server-config.js`)
 - 从 clawd-on-desk 参考项目提取端口发现逻辑，精简改写
 - 功能：
-  - 扫描 `127.0.0.1:23555-23559` 端口
-  - 发送 `{"_probe": true}` 探针 POST 到 `/state`，收到 204 即确认 Bridge 存活
-  - 缓存活跃端口到 `~/.clawd-relay/port.json`
+  - 扫描 `127.0.0.1:23555-23559` 端口（与 Bridge `DEFAULT_PORT_RANGE` 一致）
+  - 优先读取 `~/.clawd-relay/port.json`（Bridge `_save_port()` 持久化的端口），免扫描
+  - 无 `port.json` 时逐个端口发送 `{"_probe": true}` POST 到 `/state`，收到 204 即确认 Bridge 存活
   - 超时：每个端口 100ms，总扫描 < 500ms
   - **所有端口检测失败时**：输出错误到 stderr `"Bridge 未运行，请执行 'relay' 启动"`（Claude Code hook 日志可见）
 - 只依赖 Node.js 内置模块：`http`、`fs`、`path`、`os`
@@ -46,31 +46,30 @@ bridge/src/bridge/hooks/
   - `try/catch` 所有操作，错误 silent fail（不阻塞 Agent）
 
 ### 步骤 3 — Permission Hook 处理
-- 在 `PreToolUse` 事件中检测 permission_ask（Claude Code hook 标准）
+- `permission_ask` 是 Claude Code hook 的独立事件类型（非 PreToolUse 子事件）
 - 构建 `PermissionRequestMsg`，发送到 Bridge `/permission`
-- 阻塞等待响应（HTTP 连接保持打开）
+- 阻塞等待响应（HTTP 连接保持打开，与 Bridge `PERMISSION_TIMEOUT = 300s` 一致）
 - 收到响应后：
   - `approved: true`（200）→ `process.stdout.write("allow")`
   - `approved: false`（200）→ `process.stdout.write("deny")`
-  - **204 No Content** → 不输出任何内容，静默退出 → Claude Code 退回终端原生审批提示（hook 的 `defaultResult`）
-- 超时（10 分钟） → 按 204 处理，不输出决策，退给终端
+  - **204 No Content** → 不输出任何内容，静默退出 → Claude Code 退回终端原生审批提示
+  - **408 Timeout** → 不输出决策，Claude Code 自行超时处理
 - Hook 侧连接意外断开 → silent fail，不阻塞 Agent
 - 最大 body 大小：256KB
 
 ### 步骤 4 — Install 脚本 (`install.js`)
-- 使用方式：`relay install-hooks`（Bridge CLI 的子命令）
-- 安装流程：
+- 使用方式：`node install.js`（独立脚本，非 Bridge CLI 子命令）
+- 安装流程（默认行为）：
   - 读取 `~/.claude/settings.json`
   - 解析已有 `hooks` 数组
-  - 检查是否已安装本项目的 hook（通过 hook 脚本内的 marker 注释判断）
+  - 检查是否已安装本项目的 hook（通过 `command` 字段中的脚本路径匹配）
   - 追加 hook 条目（不覆盖已有条目）
   - 嵌入 Node.js 绝对路径（解决 hook runner 的受限 PATH）
   - 写入文件
-- 卸载流程：`relay uninstall-hooks`
+- 卸载流程：`node install.js --uninstall`
   - 读取 `~/.claude/settings.json`
   - 移除本项目标记的 hook 条目
   - 写入文件
-- Cursor Agent 支持（Phase 2 扩展）：同理处理 `~/.cursor/hooks.json`
 
 ## 关键技术要点
 
