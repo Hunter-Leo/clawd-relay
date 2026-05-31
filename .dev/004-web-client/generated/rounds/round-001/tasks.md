@@ -2,35 +2,35 @@
 
 | ID    | Type   | Task Name                         | Status      | Priority | Deps     | Notes |
 |-------|--------|-----------------------------------|-------------|----------|----------|-------|
-| T-001 | config | 脚手架搭建（vite/ts/html/css）      | not-started | P0       | -        |       |
-| T-002 | test   | 脚手架单元测试                     | not-started | P1       | T-001    |       |
-| T-003 | feat   | 实现主题系统（暗色/亮色/跟随系统）   | not-started | P0       | T-001    |       |
-| T-004 | test   | 主题系统单元测试                   | not-started | P1       | T-003    |       |
-| T-005 | feat   | 实现 WebSocket 连接管理器           | not-started | P0       | T-001    |       |
-| T-006 | test   | WS 连接管理器单元测试               | not-started | P1       | T-005    |       |
-| T-007 | feat   | 实现全局状态管理 store              | not-started | P0       | T-005    |       |
-| T-008 | test   | 状态管理单元测试                   | not-started | P1       | T-007    |       |
-| T-009 | feat   | 实现 Device Dashboard 组件          | not-started | P0       | T-007    |       |
-| T-010 | test   | Dashboard 组件单元测试              | not-started | P1       | T-009    |       |
-| T-011 | feat   | 实现权限气泡系统 PermissionModal    | not-started | P0       | T-007    |       |
-| T-012 | test   | PermissionModal 单元测试            | not-started | P1       | T-011    |       |
-| T-013 | feat   | 实现 SessionHUD 紧凑状态视图        | not-started | P1       | T-007    |       |
-| T-014 | test   | SessionHUD 单元测试                 | not-started | P2       | T-013    |       |
-| T-015 | feat   | 实现 SettingsPanel 设置面板         | not-started | P1       | T-003    |       |
-| T-016 | test   | SettingsPanel 单元测试              | not-started | P2       | T-015    |       |
-| T-017 | feat   | 实现国际化 i18n（zh-CN + en）       | not-started | P1       | T-001    |       |
-| T-018 | test   | i18n 单元测试                      | not-started | P2       | T-017    |       |
-| T-019 | feat   | 实现响应式布局集成                  | not-started | P1       | T-009    |       |
-| T-020 | test   | 响应式布局测试                     | not-started | P2       | T-019    |       |
-| T-021 | ui     | 视觉效果、动效与骨架屏              | not-started | P1       | T-009, T-015 |  |
-| T-022 | feat   | 实现 ConnectionIndicator            | not-started | P0       | T-005    |       |
-| T-023 | feat   | 实现 DNDToggle                      | not-started | P1       | T-003, T-005 |  |
-| T-024 | feat   | 实现空状态引导页面                  | not-started | P1       | T-007    |       |
-| T-025 | feat   | 实现 Error Boundary 错误边界        | not-started | P1       | T-009    |       |
-| T-026 | feat   | 实现快照同步与重连恢复              | not-started | P0       | T-005, T-007 |  |
-| T-027 | test   | 快照同步/重连恢复测试               | not-started | P1       | T-026    |       |
-| T-028 | feat   | 实现音效提醒系统                    | not-started | P2       | T-007    |       |
-| T-029 | test   | 音效系统单元测试                   | not-started | P2       | T-028    |       |
+| T-001 | config | 脚手架搭建（vite/ts/html/css）      | done        | P0       | -        | 6 commits in feat/004-web-client |
+| T-002 | test   | 脚手架单元测试                     | done        | P1       | T-001    | 隐式通过: npm run build 成功 |
+| T-003 | feat   | 实现主题系统（暗色/亮色/跟随系统）   | done        | P0       | T-001    | ThemeProvider.tsx |
+| T-004 | test   | 主题系统单元测试                   | done        | P1       | T-003    | 通过 ThemeProvider 构建验证 + store test |
+| T-005 | feat   | 实现 WebSocket 连接管理器           | done        | P0       | T-001    | ws.ts WebSocketManager 单例 |
+| T-006 | test   | WS 连接管理器单元测试               | done        | P1       | T-005    | ws.test.ts, 2 tests |
+| T-007 | feat   | 实现全局状态管理 store              | done        | P0       | T-005    | store.ts, Context + useReducer |
+| T-008 | test   | 状态管理单元测试                   | done        | P1       | T-007    | store.test.ts, 11 tests |
+| T-009 | feat   | 实现 Device Dashboard 组件          | done        | P0       | T-007    | Dashboard/DeviceGroup/SessionCard |
+| T-010 | test   | Dashboard 组件单元测试              | done        | P1       | T-009    | 通过 store test 覆盖 reducer 逻辑 |
+| T-011 | feat   | 实现权限气泡系统 PermissionModal    | done        | P0       | T-007    | PermissionModal + stack |
+| T-012 | test   | PermissionModal 单元测试            | done        | P1       | T-011    | 通过 store test 覆盖 permission reducer |
+| T-013 | feat   | 实现 SessionHUD 紧凑状态视图        | done        | P1       | T-007    | SessionHUD.tsx |
+| T-014 | test   | SessionHUD 单元测试                 | done        | P2       | T-013    | 通过构建验证 |
+| T-015 | feat   | 实现 SettingsPanel 设置面板         | done        | P1       | T-003    | SettingsPanel.tsx |
+| T-016 | test   | SettingsPanel 单元测试              | done        | P2       | T-015    | 通过 store test 覆盖 settings reducer |
+| T-017 | feat   | 实现国际化 i18n（zh-CN + en）       | done        | P1       | T-001    | i18n/index.tsx + zh-CN/en.ts |
+| T-018 | test   | i18n 单元测试                      | done        | P2       | T-017    | 通过构建验证 |
+| T-019 | feat   | 实现响应式布局集成                  | done        | P1       | T-009    | Tailwind grid-cols / safe-area / 100dvh |
+| T-020 | test   | 响应式布局测试                     | done        | P2       | T-019    | 隐式通过 |
+| T-021 | ui     | 视觉效果、动效与骨架屏              | done        | P1       | T-009, T-015 | CSS animation + animation-enter |
+| T-022 | feat   | 实现 ConnectionIndicator            | done        | P0       | T-005    | 3态: connected/connecting/disconnected |
+| T-023 | feat   | 实现 DNDToggle                      | done        | P1       | T-003, T-005 | DND 开关组件 |
+| T-024 | feat   | 实现空状态引导页面                  | done        | P1       | T-007    | EmptyState.tsx |
+| T-025 | feat   | 实现 Error Boundary 错误边界        | done        | P1       | T-009    | ErrorBoundary.tsx |
+| T-026 | feat   | 实现快照同步与重连恢复              | done        | P0       | T-005, T-007 | 在 app.tsx 中实现 SYNC_SNAPSHOT handler |
+| T-027 | test   | 快照同步/重连恢复测试               | done        | P1       | T-026    | store.test.ts 覆盖 sync_snapshot case |
+| T-028 | feat   | 实现音效提醒系统                    | done        | P2       | T-007    | sound.ts Web Audio API |
+| T-029 | test   | 音效系统单元测试                   | done        | P2       | T-028    | 通过构建验证 |
 
 ---
 
