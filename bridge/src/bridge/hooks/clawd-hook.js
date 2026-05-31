@@ -20,46 +20,29 @@ const http = require('http');
 const { discoverBridgePort } = require('./server-config');
 
 const BRIDGE_DATA_DIR = require('path').join(require('os').homedir(), '.clawd-relay');
-const PERMISSION_TIMEOUT_MS = 300_000; // 5 minutes — matches Bridge PERMISSION_TIMEOUT
+const PERMISSION_TIMEOUT_MS = 300_000;
 const MAX_BODY_BYTES = 4096;
+
+/** Map of current CC hook event names -> relay state. */
 const SESSION_STATES = {
-  SessionStart: 'thinking',
-  UserPromptSubmit: 'thinking',
-  PreToolUse: 'working',
-  PostToolUse: 'thinking',
-  SessionEnd: 'idle',
-  Stop: 'idle',
-  error: 'error',
+  Elicitation: 'thinking',
+  Notification: 'notification',
+  PostToolUse: 'working',
 };
 
 const AGENT_TYPE = 'claude-code';
 const BRIDGE_HOST = '127.0.0.1';
 
-/**
- * Truncate a string to maxChars, removing control characters.
- *
- * @param {string} str
- * @param {number} maxChars
- * @returns {string}
- */
 function sanitize(str, maxChars) {
   if (typeof str !== 'string') return '';
   return str.replace(/[\x00-\x1f]/g, '').slice(0, maxChars);
 }
 
-/**
- * Extract title from the hook event. For PreToolUse the first tool's
- * content is used; for UserPromptSubmit the conversation title is used.
- *
- * @param {string} eventType
- * @param {object} eventData - Parsed hook event JSON
- * @returns {string}
- */
 function extractTitle(eventType, eventData) {
-  if (eventType === 'UserPromptSubmit') {
-    return sanitize(eventData.conversation_title || '', 80);
+  if (eventType === 'Elicitation') {
+    return sanitize(eventData.conversation_title || eventData.conversationTitle || '', 80);
   }
-  if (eventType === 'PreToolUse') {
+  if (eventType === 'PostToolUse') {
     const toolInput = eventData.toolInput || eventData.tool_input || {};
     if (typeof toolInput === 'object') {
       return sanitize(JSON.stringify(toolInput), 80);
@@ -69,26 +52,13 @@ function extractTitle(eventType, eventData) {
   return '';
 }
 
-/**
- * Extract tool name from event data.
- *
- * @param {object} eventData
- * @returns {string}
- */
 function extractToolName(eventData) {
   return sanitize(eventData.toolName || eventData.tool_name || '', 60);
 }
 
-/**
- * Extract tool input as a string from event data.
- *
- * @param {object} eventData
- * @returns {object}
- */
 function extractToolInput(eventData) {
   const raw = eventData.toolInput || eventData.tool_input || {};
   if (typeof raw === 'object' && raw !== null) {
-    // Truncate large command inputs
     if (raw.command && typeof raw.command === 'string' && raw.command.length > 500) {
       return { ...raw, command: raw.command.slice(0, 500) + '...' };
     }
@@ -97,39 +67,32 @@ function extractToolInput(eventData) {
   return {};
 }
 
-/**
- * Build the state payload from a hook event.
- *
- * @param {string} eventType - Hook event type
- * @param {object} eventData - Parsed JSON from stdin
- * @returns {object} State payload
- */
 function buildStatePayload(eventType, eventData) {
-  const state = SESSION_STATES[eventType] || 'idle';
+  var state = SESSION_STATES[eventType] || 'idle';
+  var sessionId = sanitize(eventData.session_id || eventData.sessionId || '', 64);
+  var host = sanitize(eventData.host || require('os').hostname(), 64);
   return {
-    event: eventType,
-    session_id: sanitize(eventData.session_id || eventData.sessionId || '', 64),
-    state,
-    tool_name: extractToolName(eventData),
-    tool_input: extractToolInput(eventData),
-    model: sanitize(eventData.model || '', 40),
-    title: extractTitle(eventType, eventData),
-    host: sanitize(eventData.host || require('os').hostname(), 64),
-    cwd: sanitize(eventData.cwd || '', 256),
-    agent_id: AGENT_TYPE,
-    claude_pid: eventData.claude_pid || null,
+    type: 'session_state',
+    device: {
+      id: host ? 'host-' + host : 'unknown',
+      host: host,
+      platform: process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux',
+      bridgeVersion: '0.1.0',
+    },
+    session: {
+      id: sessionId,
+      agentId: AGENT_TYPE,
+      state: state,
+      title: extractTitle(eventType, eventData) || null,
+      cwd: sanitize(eventData.cwd || '', 256) || null,
+      model: sanitize(eventData.model || '', 40) || null,
+      toolName: extractToolName(eventData) || null,
+      toolInput: Object.keys(extractToolInput(eventData)).length > 0 ? extractToolInput(eventData) : null,
+      updatedAt: Date.now(),
+    },
   };
 }
 
-/**
- * Handle a permission_ask event — forward to Bridge and wait for decision.
- *
- * Returns the decision string or null (fall back to terminal prompt).
- *
- * @param {object} eventData - Parsed event JSON
- * @param {number} port - Bridge port
- * @returns {Promise<string|null>} "allow", "deny", or null
- */
 async function handlePermission(eventData, port) {
   const permissionId = sanitize(
     eventData.permission_id || eventData.permissionId || '',
@@ -155,7 +118,7 @@ async function handlePermission(eventData, port) {
   const response = await new Promise((resolve) => {
     const options = {
       hostname: BRIDGE_HOST,
-      port,
+      port: port,
       path: '/permission',
       method: 'POST',
       headers: {
@@ -165,18 +128,16 @@ async function handlePermission(eventData, port) {
       timeout: PERMISSION_TIMEOUT_MS,
     };
 
-    const req = http.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
+    const req = http.request(options, function(res) {
+      var data = '';
+      res.on('data', function(chunk) { data += chunk; });
+      res.on('end', function() {
         resolve({ statusCode: res.statusCode, body: data });
       });
     });
 
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => {
+    req.on('error', function() { resolve(null); });
+    req.on('timeout', function() {
       req.destroy();
       resolve(null);
     });
@@ -191,34 +152,25 @@ async function handlePermission(eventData, port) {
 
   if (response.statusCode === 200) {
     try {
-      const parsed = JSON.parse(response.body);
+      var parsed = JSON.parse(response.body);
       return parsed.approved === true ? 'allow' : 'deny';
-    } catch {
-      return null;
-    }
+    } catch (e) { return null; }
   }
 
   return null;
 }
 
-/**
- * POST a JSON payload to the Bridge /state endpoint.
- *
- * @param {object} payload
- * @param {number} port
- * @returns {Promise<void>}
- */
 function sendState(payload, port) {
-  return new Promise((resolve) => {
-    const body = JSON.stringify(payload);
+  return new Promise(function(resolve) {
+    var body = JSON.stringify(payload);
     if (Buffer.byteLength(body) > MAX_BODY_BYTES) {
       resolve();
       return;
     }
 
-    const options = {
+    var options = {
       hostname: BRIDGE_HOST,
-      port,
+      port: port,
       path: '/state',
       method: 'POST',
       headers: {
@@ -228,12 +180,12 @@ function sendState(payload, port) {
       timeout: 5000,
     };
 
-    const req = http.request(options, (res) => {
+    var req = http.request(options, function(res) {
       res.resume();
       resolve();
     });
-    req.on('error', () => resolve());
-    req.on('timeout', () => {
+    req.on('error', function() { resolve(); });
+    req.on('timeout', function() {
       req.destroy();
       resolve();
     });
@@ -242,64 +194,44 @@ function sendState(payload, port) {
   });
 }
 
-/**
- * Main entry — parse event from stdin, send to Bridge.
- *
- * @returns {Promise<void>}
- */
 async function main() {
-  const eventType = process.argv[2];
-  if (!eventType) {
-    return;
-  }
+  var eventType = process.argv[2];
+  if (!eventType) return;
 
-  // Read stdin
-  const chunks = [];
-  for await (const chunk of process.stdin) {
+  var chunks = [];
+  for await (var chunk of process.stdin) {
     chunks.push(chunk);
   }
-  const raw = Buffer.concat(chunks).toString('utf-8').trim();
+  var raw = Buffer.concat(chunks).toString('utf-8').trim();
   if (!raw) return;
 
-  let eventData;
-  try {
-    eventData = JSON.parse(raw);
-  } catch {
-    return; // invalid JSON — silent fail
-  }
+  var eventData;
+  try { eventData = JSON.parse(raw); }
+  catch (e) { return; }
 
-  // Discover Bridge port
-  const port = await discoverBridgePort(BRIDGE_DATA_DIR);
-  if (port === null) {
-    // Bridge not running — silently skip
-    return;
-  }
+  var port = await discoverBridgePort(BRIDGE_DATA_DIR);
+  if (port === null) return;
 
   if (eventType === 'permission_ask') {
-    const decision = await handlePermission(eventData, port);
-    if (decision) {
-      process.stdout.write(decision);
-    }
+    var decision = await handlePermission(eventData, port);
+    if (decision) process.stdout.write(decision);
     return;
   }
 
-  // Build the standard state event and send
-  const payload = buildStatePayload(eventType, eventData);
+  var payload = buildStatePayload(eventType, eventData);
   await sendState(payload, port);
 }
 
 if (require.main === module) {
-  main().catch(() => {
-    // Silent fail — hook must never crash the Agent
-  });
+  main().catch(function() {});
 }
 
 module.exports = {
-  sanitize,
-  extractTitle,
-  extractToolName,
-  extractToolInput,
-  buildStatePayload,
-  handlePermission,
-  sendState,
+  sanitize: sanitize,
+  extractTitle: extractTitle,
+  extractToolName: extractToolName,
+  extractToolInput: extractToolInput,
+  buildStatePayload: buildStatePayload,
+  handlePermission: handlePermission,
+  sendState: sendState,
 };
