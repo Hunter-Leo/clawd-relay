@@ -1,13 +1,12 @@
 # Project Blueprint
 
-Last updated: 2026-05-30
+Last updated: 2026-05-31
 
 ## Status Distribution
 
 ```mermaid
 pie title Requirement Status
-    "Done" : 2
-    "Plan" : 4
+    "Done" : 6
 ```
 
 ## Progress Bar
@@ -15,12 +14,12 @@ pie title Requirement Status
 ```
 001 project-skeleton    [████████████████████████] 100%
 002 python-bridge       [████████████████████████] 100%
-003 cf-worker           [░░░░░░░░░░░░░░░░░░░░░░░░]   0%
-004 web-client          [░░░░░░░░░░░░░░░░░░░░░░░░]   0%
-005 hook-scripts        [░░░░░░░░░░░░░░░░░░░░░░░░]   0%
-006 pairing-flow        [░░░░░░░░░░░░░░░░░░░░░░░░]   0%
+003 cf-worker           [████████████████████████] 100%
+004 web-client          [████████████████████████] 100%
+005 hook-scripts        [████████████████████████] 100%
+006 pairing-flow        [████████████████████████] 100%
 
-Overall:               [████████████████████░░░░]  33%
+Overall:               [████████████████████████] 100%
 ```
 
 ## Roadmap
@@ -32,7 +31,7 @@ Overall:               [██████████████████�
 | 003 | cf-worker | 07 Done | ✅ done | 001 | P0 | Round 2 complete: ISS-001 resolved. 26 tests |
 | 004 | web-client | 07 Done | ✅ done | 003 | P1 | Round 2 complete: Terminal Native redesign |
 | 005 | hook-scripts | 07 Done | ✅ done | 002 | P0 | Round 1 complete: 7/7 tasks, 36 tests pass |
-| 006 | pairing-flow | 04 Plan | ⏳ pending | 002, 003, 004 | P2 | |
+| 006 | pairing-flow | 07 Done | ✅ done | 002, 003, 004 | P2 | Round 1 complete: 6/6 tasks, 96 bridge + 28 worker tests |
 
 **Phase labels:** `01 Init` · `02 Prerequisite` · `03 Algorithm` · `04 Plan` · `05 Tasks` · `06 Start-and-resume` · `07 Execution` · `Round Review` · `07 Done`
 
@@ -44,9 +43,7 @@ Overall:               [██████████████████�
 
 ```
 Total: 6 requirements
-✅ Done:  2
-▶ Active: 0
-⏳ Pending: 4
+✅ Done:  6
 ```
 
 ## Key Dependencies
@@ -78,7 +75,7 @@ graph LR
 | 003 | cf-worker | L | - | ~5d |
 | 004 | web-client | L | - | ~6d |
 | 005 | hook-scripts | M | - | ~3d |
-| 006 | pairing-flow | S | - | ~2d |
+| 006 | pairing-flow | S | ~1d | 0 |
 | **Total** | | | | **~21d** |
 
 ## Quick Reference

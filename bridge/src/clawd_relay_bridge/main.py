@@ -12,6 +12,7 @@ import platform
 import signal
 import socket
 import sys
+from pathlib import Path
 
 import uvicorn
 
@@ -21,6 +22,7 @@ from clawd_relay_bridge.token import (
     regenerate_token,
     get_relay_url,
 )
+from clawd_relay_bridge.qr_output import output_qr
 from clawd_relay_bridge.ws_client import WebSocketClient
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--regenerate-token",
         action="store_true",
         help="Force generate a new token",
+    )
+    parser.add_argument(
+        "--qr-output",
+        choices=["ascii", "image", "none"],
+        default="ascii",
+        help="QR code output mode (default: ascii)",
+    )
+    parser.add_argument(
+        "--show-qr",
+        action="store_true",
+        help="Alias for --qr-output image",
     )
     parser.add_argument(
         "--port",
@@ -107,14 +120,29 @@ async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
     """
     args = parse_args()
     relay_url = get_relay_url(args.relay_url)
-    data_dir = os.path.expanduser("~/.clawd-relay")
+    has_relay_url = args.relay_url is not None or os.environ.get("RELAY_RELAY_URL") is not None
+    data_dir = Path(os.path.expanduser("~/.clawd-relay"))
 
     if args.regenerate_token:
         token = regenerate_token(data_dir=data_dir)
     else:
         token = load_token(data_dir=data_dir, cli_token=args.token)
 
-    print(f"配对链接: {relay_url}/join/{token}")
+    qr_mode = "image" if args.show_qr else args.qr_output
+
+    if has_relay_url:
+        pair_url = f"{relay_url}/join/{token}"
+        width = max(len(pair_url), len(token)) + 4
+        print("┌" + "─" * width + "┐")
+        print(f"│  🔗 配对链接:{' ' * (width - 13)}│")
+        print(f"│  \x1b[32m{pair_url}\x1b[0m{' ' * (width - len(pair_url) - 2)} │")
+        print(f"│{' ' * width}│")
+        print(f"│  或手动输入 Token:{' ' * (width - 19)}│")
+        print(f"│  \x1b[32m{token}\x1b[0m{' ' * (width - len(token) - 2)} │")
+        print("└" + "─" * width + "┘")
+        output_qr(pair_url, mode=qr_mode)
+    else:
+        print(f"Token: {token}")
 
     device_id = _resolve_device_id()
     ws_client = WebSocketClient(

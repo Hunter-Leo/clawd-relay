@@ -31,6 +31,13 @@ function getRegistry(c: { env: Env }): DurableObjectStub {
 	return c.env.RELAY_ROOM.get(c.env.RELAY_ROOM.idFromName("__relay_registry__"));
 }
 
+// ─── Pairing redirect ──────────────────────────────────────────────────────
+
+app.get("/join/:token", (c) => {
+	const token = c.req.param("token");
+	return c.redirect(`/?token=${encodeURIComponent(token)}`, 302);
+});
+
 // ─── Health check ──────────────────────────────────────────────────────────
 
 app.get("/", (c) => c.text("Clawd Relay Worker — OK"));

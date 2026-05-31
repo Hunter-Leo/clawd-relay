@@ -55,4 +55,16 @@ describe("index.ts routes", () => {
 		const res = await SELF.fetch(new Request("http://fake/unknown"));
 		expect(res.status).toBe(404);
 	});
+
+	it("should redirect /join/:token to /?token=:token", async () => {
+		const res = await SELF.fetch(new Request("http://fake/join/test123", { redirect: "manual" }));
+		expect(res.status).toBe(302);
+		expect(res.headers.get("Location")).toBe("/?token=test123");
+	});
+
+	it("should encode special chars in /join/:token redirect", async () => {
+		const res = await SELF.fetch(new Request("http://fake/join/token+abc", { redirect: "manual" }));
+		expect(res.status).toBe(302);
+		expect(res.headers.get("Location")).toBe("/?token=token%2Babc");
+	});
 });
