@@ -30,7 +30,7 @@ Overall:               [██████████████████�
 | 001 | project-skeleton | 07 Done | ✅ done | - | P0 | Round 1: 11/11 tasks, all tests pass |
 | 002 | python-bridge | 07 Done | ✅ done | 001 | P0 | Round 2 complete. ISS-001 resolved. 90 tests. |
 | 003 | cf-worker | 07 Done | ✅ done | 001 | P0 | Round 2 complete: ISS-001 resolved. 26 tests |
-| 004 | web-client | 06 Start-and-resume | ⏳ pending | 003 | P1 | |
+| 004 | web-client | 07 Done | ✅ done | 003 | P1 | Round 2 complete: Terminal Native redesign |
 | 005 | hook-scripts | 07 Done | ✅ done | 002 | P0 | Round 1 complete: 7/7 tasks, 36 tests pass |
 | 006 | pairing-flow | 04 Plan | ⏳ pending | 002, 003, 004 | P2 | |
 

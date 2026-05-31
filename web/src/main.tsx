@@ -1,7 +1,5 @@
+import "./style.css";
 import { render } from "preact";
-
-function App() {
-  return <h1>Clawd Relay</h1>;
-}
+import { App } from "./app";
 
 render(<App />, document.getElementById("app")!);
