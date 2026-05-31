@@ -142,6 +142,8 @@ class PermissionResponseMsg(BaseModel):
     type: Literal["permission_response"] = "permission_response"
     permission_id: str = Field(alias="permissionId")
     approved: bool
+    answers: dict[str, str] | None = None
+    suggestion: str | None = None
 
 
 class DNDChangeMsg(BaseModel):

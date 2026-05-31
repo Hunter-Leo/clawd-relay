@@ -138,6 +138,8 @@ class WebSocketClient:
         if msg_type == "permission_response":
             perm_id = data.get("permissionId")
             approved = data.get("approved", False)
+            answers = data.get("answers")
+            suggestion = data.get("suggestion")
             logger.info("Permission response: %s approved=%s", perm_id, approved)
             self._permission_results[perm_id] = approved
             if perm_id in self._pending:
@@ -148,6 +150,9 @@ class WebSocketClient:
             self._permission_results[perm_id] = None  # sentinel
             if perm_id in self._pending:
                 self._pending[perm_id].set()
+        elif msg_type == "always_allow":
+            rule = data.get("rule", {})
+            logger.info("Always-allow rule received: tool=%s device=%s", rule.get("toolName", ""), rule.get("deviceId", ""))
         else:
             logger.debug("Ignored message type: %s", msg_type)
 
