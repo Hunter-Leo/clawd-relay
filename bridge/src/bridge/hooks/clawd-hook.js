@@ -124,12 +124,11 @@ function buildStatePayload(eventType, eventData) {
 /**
  * Handle a permission_ask event — forward to Bridge and wait for decision.
  *
- * The hook runner expects the script to output nothing (→ fall back to
- * terminal prompt), "allow", or "deny" on stdout.
+ * Returns the decision string or null (fall back to terminal prompt).
  *
  * @param {object} eventData - Parsed event JSON
  * @param {number} port - Bridge port
- * @returns {Promise<void>}
+ * @returns {Promise<string|null>} "allow", "deny", or null
  */
 async function handlePermission(eventData, port) {
   const permissionId = sanitize(
@@ -186,36 +185,20 @@ async function handlePermission(eventData, port) {
     req.end();
   });
 
-  if (response === null) {
-    // Network error — silent fail, falls back to terminal prompt
-    return;
-  }
-
-  if (response.statusCode === 204) {
-    // No clients connected — fall back to terminal prompt
-    return;
-  }
-
-  if (response.statusCode === 408) {
-    // Timeout — fall back to terminal prompt
-    return;
-  }
+  if (response === null) return null;
+  if (response.statusCode === 204) return null;
+  if (response.statusCode === 408) return null;
 
   if (response.statusCode === 200) {
     try {
       const parsed = JSON.parse(response.body);
-      if (parsed.approved === true) {
-        process.stdout.write('allow');
-      } else {
-        process.stdout.write('deny');
-      }
+      return parsed.approved === true ? 'allow' : 'deny';
     } catch {
-      // Invalid response body — silent fail
+      return null;
     }
-    return;
   }
 
-  // Unexpected status code — silent fail
+  return null;
 }
 
 /**
@@ -293,7 +276,10 @@ async function main() {
   }
 
   if (eventType === 'permission_ask') {
-    await handlePermission(eventData, port);
+    const decision = await handlePermission(eventData, port);
+    if (decision) {
+      process.stdout.write(decision);
+    }
     return;
   }
 
@@ -302,6 +288,18 @@ async function main() {
   await sendState(payload, port);
 }
 
-main().catch(() => {
-  // Silent fail — hook must never crash the Agent
-});
+if (require.main === module) {
+  main().catch(() => {
+    // Silent fail — hook must never crash the Agent
+  });
+}
+
+module.exports = {
+  sanitize,
+  extractTitle,
+  extractToolName,
+  extractToolInput,
+  buildStatePayload,
+  handlePermission,
+  sendState,
+};
