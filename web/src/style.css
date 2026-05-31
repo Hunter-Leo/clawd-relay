@@ -1,6 +1,46 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* ── Selection ── */
+::selection {
+  background: #818cf8;
+  color: #fff;
+}
+
+/* ── Global transition defaults ── */
+*, *::before, *::after {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+
+/* ── Focus-visible ring ── */
+:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Animations ── */
 @keyframes permission-enter {
   from {
     opacity: 0;
@@ -12,15 +52,56 @@
   }
 }
 
-.animate-permission-enter {
-  animation: permission-enter 0.2s ease-out;
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-permission-enter {
+  animation: permission-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Card hover raise ── */
+.card-raise {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-raise:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Soft divider ── */
+.soft-divider {
+  border-bottom: 1px solid rgba(39, 39, 42, 0.5);
+}
+
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
   .animate-permission-enter {
     animation: none;
   }
   .animate-pulse {
     animation: none;
+  }
+  .card-raise:hover {
+    transform: none;
   }
 }

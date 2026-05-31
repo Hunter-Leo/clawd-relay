@@ -174,7 +174,7 @@ function InnerApp() {
           <DNDToggle dnd={state.settings.dnd} onToggle={handleDndToggle} />
           <button
             onClick={() => setShowSettings(!showSettings)}
-            class="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+            class="text-sm text-zinc-500 hover:text-zinc-300 hover:rotate-90 transition-all duration-300"
             title="Settings"
           >
             &#9881;

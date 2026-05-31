@@ -27,7 +27,14 @@
 ---
 
 ## Round History
-**Current Round:** 1
+**Current Round:** 2
+
+### Round 2 (in-progress)
+- **Status:** ▶ in-progress
+- **Location:** `generated/rounds/round-002/`
+- **Tasks:** 10 planned, 0 completed
+
+### Round 1 (complete)
 
 ### Round 1 (complete)
 - **Status:** ✅ done
