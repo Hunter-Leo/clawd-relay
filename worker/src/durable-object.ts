@@ -117,6 +117,28 @@ export class RelayRoom implements DurableObject {
 			});
 		}
 
+		// ─── Token Registry routes ────────────────────────────────────────
+
+		// Registry: list all token IDs
+		if (method === "GET" && url.pathname === "/registry/list") {
+			const ids = await this.storage.get<string[]>(STORAGE_KEYS.tokenIds) ?? [];
+			return Response.json({ tokenIds: ids });
+		}
+
+		// Registry: add token ID
+		if (method === "POST" && url.pathname === "/registry/add") {
+			const body = (await request.json()) as { id: string };
+			await this.addTokenId(body.id);
+			return Response.json({ ok: true });
+		}
+
+		// Registry: remove token ID
+		if (method === "POST" && url.pathname === "/registry/remove") {
+			const body = (await request.json()) as { id: string };
+			await this.removeTokenId(body.id);
+			return Response.json({ ok: true });
+		}
+
 		return new Response("Not found", { status: 404 });
 	}
 
