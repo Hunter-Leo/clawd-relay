@@ -1,5 +1,6 @@
 import { createContext } from "preact";
 import { useContext, useState, useCallback } from "preact/hooks";
+import type { ComponentChildren } from "preact";
 import zhCN from "./zh-CN";
 import en from "./en";
 
@@ -15,13 +16,13 @@ function detectLocale(): Locale {
   return "en";
 }
 
-interface I18nContextValue {
+export interface I18nContextValue {
   locale: Locale;
   t: (key: string, params?: Record<string, string | number>) => string;
   setLocale: (locale: Locale) => void;
 }
 
-const I18nContext = createContext<I18nContextValue>({
+export const I18nContext = createContext<I18nContextValue>({
   locale: "en",
   t: (k: string) => k,
   setLocale: () => {},
@@ -31,8 +32,8 @@ export function useI18n() {
   return useContext(I18nContext);
 }
 
-export function createI18nValue(initialLocale?: Locale): I18nContextValue {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? detectLocale());
+export function I18nProvider({ children }: { children: ComponentChildren }) {
+  const [locale, setLocaleState] = useState<Locale>(detectLocale);
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
@@ -57,5 +58,9 @@ export function createI18nValue(initialLocale?: Locale): I18nContextValue {
     document.documentElement.lang = l === "zh-CN" ? "zh" : "en";
   }, []);
 
-  return { locale, t, setLocale };
+  return (
+    <I18nContext.Provider value={{ locale, t, setLocale }}>
+      {children}
+    </I18nContext.Provider>
+  );
 }

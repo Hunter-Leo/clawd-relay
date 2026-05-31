@@ -16,3 +16,5 @@ export type {
   BroadcastMsg,
   WorkerMsg,
 } from "./protocol";
+
+export { AGENT_META } from "./protocol";
