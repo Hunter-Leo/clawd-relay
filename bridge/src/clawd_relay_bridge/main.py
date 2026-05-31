@@ -53,6 +53,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Force generate a new token",
     )
     parser.add_argument(
+        "--qr-output",
+        choices=["ascii", "image", "none"],
+        default="ascii",
+        help="QR code output mode (default: ascii)",
+    )
+    parser.add_argument(
+        "--show-qr",
+        action="store_true",
+        help="Alias for --qr-output image",
+    )
+    parser.add_argument(
         "--port",
         type=int,
         default=None,
