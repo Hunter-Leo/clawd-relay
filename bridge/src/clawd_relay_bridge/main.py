@@ -12,6 +12,7 @@ import platform
 import signal
 import socket
 import sys
+from pathlib import Path
 
 import uvicorn
 
@@ -120,7 +121,7 @@ async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
     args = parse_args()
     relay_url = get_relay_url(args.relay_url)
     has_relay_url = args.relay_url is not None or os.environ.get("RELAY_RELAY_URL") is not None
-    data_dir = os.path.expanduser("~/.clawd-relay")
+    data_dir = Path(os.path.expanduser("~/.clawd-relay"))
 
     if args.regenerate_token:
         token = regenerate_token(data_dir=data_dir)
