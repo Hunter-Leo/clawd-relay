@@ -11,6 +11,7 @@ import os
 import platform
 import signal
 import socket
+import subprocess
 import sys
 from pathlib import Path
 
@@ -112,6 +113,47 @@ def _save_port(port: int, data_dir: str) -> None:
         json.dump({"port": port}, f)
 
 
+def _install_script() -> str:
+    """Resolve the absolute path to the hook install.js script."""
+    return os.path.join(os.path.dirname(__file__), "..", "bridge", "hooks", "install.js")
+
+
+def _install_hooks() -> None:
+    """Install Claude Code hooks via install.js. Failure is non-fatal."""
+    script = _install_script()
+    try:
+        result = subprocess.run(
+            ["node", script],
+            capture_output=True,
+            timeout=15,
+            text=True,
+        )
+        if result.returncode == 0:
+            logger.info("Hooks installed: %s", result.stdout.strip())
+        else:
+            logger.warning("Hook install failed: %s", result.stderr.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
+        logger.warning("Hook install skipped: %s", exc)
+
+
+def _uninstall_hooks() -> None:
+    """Remove Claude Code hooks via install.js --uninstall. Failure is non-fatal."""
+    script = _install_script()
+    try:
+        result = subprocess.run(
+            ["node", script, "--uninstall"],
+            capture_output=True,
+            timeout=15,
+            text=True,
+        )
+        if result.returncode == 0:
+            logger.info("Hooks uninstalled: %s", result.stdout.strip())
+        else:
+            logger.warning("Hook uninstall failed: %s", result.stderr.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
+        logger.warning("Hook uninstall skipped: %s", exc)
+
+
 async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
     """Async orchestrator — assemble and start the Bridge.
 
@@ -160,6 +202,9 @@ async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
     port = _find_free_port(args.port or DEFAULT_PORT_RANGE[0], DEFAULT_PORT_RANGE)
     _save_port(port, data_dir)
     logger.info("Bridge listening on 127.0.0.1:%d", port)
+
+    _install_hooks()
+
     config = uvicorn.Config(
         app,
         host="127.0.0.1",
@@ -186,6 +231,7 @@ async def async_main(_shutdown_event: asyncio.Event | None = None) -> None:
     await shutdown_event.wait()
     logger.info("Shutting down...")
     await ws_client.disconnect()
+    _uninstall_hooks()
     server.should_exit = True
     await server_task
 
