@@ -48,8 +48,38 @@ function InnerApp() {
   useEffect(() => { setMode(state.settings.theme as any); }, [state.settings.theme]);
   useEffect(() => { setLocale(state.settings.language as any); }, [state.settings.language]);
 
+  // Demo mode
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("demo")) return;
+    dispatch({ type: "CONNECTION_STATUS", status: "connected" });
+    const t = setTimeout(() => dispatch({
+      type: "SYNC_SNAPSHOT",
+      devices: [
+        { id: "mac-studio", host: "Mac Studio", platform: "darwin", bridgeVersion: "0.1.0" },
+        { id: "dev-laptop", host: "Dev Laptop", platform: "darwin", bridgeVersion: "0.1.0" },
+        { id: "linux-box", host: "Linux Box", platform: "linux", bridgeVersion: "0.1.0" },
+      ],
+      sessions: {
+        "mac-studio": [
+          { id: "s1", agentId: "claude-code", state: "working", title: "Refactoring auth middleware", cwd: "/Users/me/project/api", model: "claude-sonnet-4-6", toolName: "Bash", toolInput: { command: "npm run build" }, updatedAt: Date.now() },
+          { id: "s2", agentId: "claude-code", state: "thinking", title: "Reviewing PR #142", cwd: "/Users/me/project/api", model: "claude-sonnet-4-6", toolName: "Read", toolInput: { file: "src/auth.ts" }, updatedAt: Date.now() - 5000 },
+        ],
+        "dev-laptop": [
+          { id: "s3", agentId: "codex", state: "idle", title: null, cwd: "/home/dev/app", model: "codex-v1", toolName: null, toolInput: null, updatedAt: Date.now() - 120000 },
+        ],
+        "linux-box": [
+          { id: "s4", agentId: "copilot", state: "error", title: "Deploy script failed", cwd: "/opt/deploy", model: "copilot-v2", toolName: "Bash", toolInput: { command: "docker compose up -d" }, updatedAt: Date.now() - 30000 },
+        ],
+      },
+    }), 500);
+    return () => clearTimeout(t);
+  }, []);
+
   // Connect WS
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("demo")) return;
     const ws = getWSManager();
     dispatch({ type: "CONNECTION_STATUS", status: "connecting" });
 
@@ -155,7 +185,7 @@ function InnerApp() {
       {/* Main content */}
       <main class="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
         <ErrorBoundary>
-          {state.devices.size === 0 && state.connectionStatus === "disconnected" ? (
+          {state.devices.size === 0 ? (
             <EmptyState onConnect={handleTokenConnect} />
           ) : (
             <Dashboard devices={state.devices} />
