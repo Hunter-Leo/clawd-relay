@@ -29,6 +29,7 @@ Thumbs.db
 .env
 .env.local
 *.log
+.cache/
 
 # OMC
 .omc/

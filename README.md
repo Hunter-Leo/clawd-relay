@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Clawd Relay" src=".github/logo.svg" width="180">
+  <img alt="Clawd Relay" src="assets/logo.svg" width="80">
 </p>
 
 <h3 align="center">Real-time Claude Code event relay from your terminal to any browser</h3>
