@@ -26,15 +26,15 @@ describe('sanitize', () => {
 });
 
 describe('extractTitle', () => {
-  it('extracts conversation_title from UserPromptSubmit', () => {
+  it('extracts conversation_title from Elicitation', () => {
     assert.strictEqual(
-      clawdHook.extractTitle('UserPromptSubmit', { conversation_title: 'Fix login bug' }),
+      clawdHook.extractTitle('Elicitation', { conversation_title: 'Fix login bug' }),
       'Fix login bug',
     );
   });
 
   it('returns empty for other event types', () => {
-    assert.strictEqual(clawdHook.extractTitle('SessionStart', {}), '');
+    assert.strictEqual(clawdHook.extractTitle('Notification', {}), '');
   });
 });
 
@@ -58,19 +58,22 @@ describe('extractToolInput', () => {
 });
 
 describe('buildStatePayload', () => {
-  it('maps SessionStart to thinking', () => {
-    const r = clawdHook.buildStatePayload('SessionStart', { session_id: 's1' });
-    assert.strictEqual(r.state, 'thinking');
-    assert.strictEqual(r.agent_id, 'claude-code');
+  it('maps Elicitation to thinking', () => {
+    var r = clawdHook.buildStatePayload('Elicitation', { session_id: 's1' });
+    assert.strictEqual(r.type, 'session_state');
+    assert.strictEqual(r.session.state, 'thinking');
+    assert.ok(r.device.id);
+    assert.ok(typeof r.session.updatedAt === 'number');
   });
 
-  it('maps PreToolUse to working', () => {
-    const r = clawdHook.buildStatePayload('PreToolUse', { tool_name: 'Bash' });
-    assert.strictEqual(r.state, 'working');
+  it('maps PostToolUse to working', () => {
+    var r = clawdHook.buildStatePayload('PostToolUse', { tool_name: 'Bash', session_id: 's2' });
+    assert.strictEqual(r.session.state, 'working');
   });
 
   it('defaults unknown events to idle', () => {
-    assert.strictEqual(clawdHook.buildStatePayload('Unknown', {}).state, 'idle');
+    var r = clawdHook.buildStatePayload('Unknown', { session_id: 's3' });
+    assert.strictEqual(r.session.state, 'idle');
   });
 });
 

@@ -26,6 +26,10 @@ function getRelayUrl(): string {
   return custom ?? window.location.origin;
 }
 
+function toOrigin(url: string): string {
+  try { return new URL(url).origin; } catch { return url; }
+}
+
 const MAX_RETRIES = 6;
 const INITIAL_RETRY_DELAY = 1000;
 
@@ -39,7 +43,7 @@ class WebSocketManager {
   private _relayUrl: string;
 
   constructor() {
-    this._relayUrl = getRelayUrl();
+    this._relayUrl = toOrigin(getRelayUrl());
     const tokens = parseTokens();
     for (const token of tokens) {
       this.connect(token);
@@ -79,7 +83,7 @@ class WebSocketManager {
   }
 
   setRelayUrl(url: string) {
-    this._relayUrl = url;
+    this._relayUrl = toOrigin(url);
   }
 
   connect(token: string) {
@@ -128,7 +132,9 @@ class WebSocketManager {
     const conn = this.connections.get(token);
     if (!conn) return;
 
-    const url = `${this.relayUrl.replace(/^http/, "ws")}/relay/connect?token=${encodeURIComponent(token)}`;
+    // Strip any path from relayUrl — only origin matters for WS
+    const base = new URL(this.relayUrl).origin;
+    const url = `${base.replace(/^http/, "ws")}/relay/connect?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(url);
 
     conn.ws = ws;

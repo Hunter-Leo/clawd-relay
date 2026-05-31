@@ -5,6 +5,7 @@
  * - One bridge (the local agent process) — exclusive
  * - Many clients (web UI, hardware) — concurrent
  * - Offline message buffer with RingBuffer
+ * - Device state tracking for new-client replay
  * - Heartbeat detection via DO alarms
  */
 import type { TokenRecord, Env } from "./types";
@@ -44,11 +45,6 @@ export class RingBuffer<T> {
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-/** Broadcast-safe events (replayable to newly connected clients). */
-function isBroadcastable(type: string): boolean {
-	return type === "session_state" || type === "permission_request";
-}
-
 // ─── RelayRoom DO ──────────────────────────────────────────────────────────
 
 export class RelayRoom implements DurableObject {
@@ -58,8 +54,10 @@ export class RelayRoom implements DurableObject {
 	private tokenRecord: TokenRecord | null = null;
 	private lastBridgeActivity = 0;
 	private readonly offlineBuffer = new RingBuffer<JsonValue>(50);
+	private readonly deviceInfos = new Map<string, Record<string, unknown>>();
+	private readonly deviceSessions = new Map<string, Record<string, unknown>[]>();
 
-	// Mapping from client ws → deviceId for disconnection tracking
+	// Mapping from client ws -> deviceId for disconnection tracking
 	private readonly clientDevices = new WeakMap<WebSocket, string>();
 
 	constructor(
@@ -191,16 +189,9 @@ export class RelayRoom implements DurableObject {
 		this.tokenRecord = record;
 
 		// Determine if this is bridge or client
-		// Bridge connections come from the local relay process
-		// We detect bridge vs client by checking if the WS pair
-		// came through /relay/connect (handled by index.ts forwarding)
-		// vs browser WebSocket. For simplicity, the first WS to send hello
-		// on a token with no existing bridge is treated as the bridge.
 		if (this.bridges.size === 0) {
-			// This is the bridge
 			this.addBridge(ws, deviceId);
 		} else {
-			// This is a client
 			this.addClient(ws, deviceId);
 		}
 	}
@@ -208,7 +199,6 @@ export class RelayRoom implements DurableObject {
 	// ─── Connection management ─────────────────────────────────────────────
 
 	private addBridge(ws: WebSocket, deviceId: string): void {
-		// Kick existing bridge if any
 		for (const old of this.bridges) {
 			try {
 				old.close(1000, "Replaced by new bridge");
@@ -224,7 +214,6 @@ export class RelayRoom implements DurableObject {
 		ws.addEventListener("close", () => this.onBridgeClose(ws));
 		ws.addEventListener("error", () => this.onBridgeClose(ws));
 
-		// Send device_online
 		this.sendJson(ws, {
 			type: "device_online",
 			device: { id: deviceId, host: "", platform: "", bridgeVersion: "" },
@@ -237,7 +226,6 @@ export class RelayRoom implements DurableObject {
 			online: true,
 		});
 
-		// Start heartbeat alarm
 		this.state.storage.setAlarm(Date.now() + 30000);
 	}
 
@@ -249,17 +237,23 @@ export class RelayRoom implements DurableObject {
 		ws.addEventListener("close", () => this.onClientClose(ws));
 		ws.addEventListener("error", () => this.onClientClose(ws));
 
-		// Flush offline buffer to new client
-		const buffered = this.offlineBuffer.flush();
-		if (buffered.length > 0) {
-			this.sendJson(ws, {
-				type: "sync_snapshot",
-				devices: [],
-				sessions: {},
-			});
-			for (const msg of buffered) {
-				this.sendJson(ws, msg);
-			}
+		// Send sync_snapshot with current device state for history
+		const devicesArr: Record<string, unknown>[] = [];
+		const sessionsObj: Record<string, Record<string, unknown>[]> = {};
+		for (const [id, info] of this.deviceInfos) {
+			devicesArr.push(info);
+			const s = this.deviceSessions.get(id);
+			if (s) sessionsObj[id] = s;
+		}
+		this.sendJson(ws, {
+			type: "sync_snapshot",
+			devices: devicesArr,
+			sessions: sessionsObj,
+		});
+
+		// Replay offline buffer
+		for (const msg of this.offlineBuffer.flush()) {
+			this.sendJson(ws, msg);
 		}
 
 		// Send current bridge status
@@ -287,19 +281,35 @@ export class RelayRoom implements DurableObject {
 
 		switch (type) {
 			case "hello":
-				// Already handled, ignore
 				break;
 
 			case "keepalive":
-				// Update timestamp only, no broadcast
 				break;
 
-			case "session_state":
-			case "permission_request":
-				// Broadcast to all clients; buffer for replay
+			case "session_state": {
+				const sessionMsg = msg as Record<string, unknown>;
+				const device = sessionMsg.device as Record<string, unknown> | undefined;
+				const session = sessionMsg.session as Record<string, unknown> | undefined;
+				if (device && typeof device.id === "string") {
+					this.deviceInfos.set(device.id, device);
+					if (session && typeof session.id === "string") {
+						const existing = this.deviceSessions.get(device.id) ?? [];
+						const idx = (existing as Array<Record<string, unknown>>).findIndex((s: Record<string, unknown>) => s.id === session.id);
+						if (idx >= 0) existing[idx] = session;
+						else existing.push(session);
+						this.deviceSessions.set(device.id, existing);
+					}
+				}
 				this.offlineBuffer.push(msg as JsonValue);
-				if (type === "permission_request" && this.clients.size === 0) {
-					// No clients connected — reply no_clients to bridge
+				if (this.clients.size > 0) {
+					this.broadcastRaw(json);
+				}
+				break;
+			}
+
+			case "permission_request":
+				this.offlineBuffer.push(msg as JsonValue);
+				if (this.clients.size === 0) {
 					this.sendJson(ws, {
 						type: "no_clients",
 						permissionId: (msg as { permissionId?: string }).permissionId ?? "",
@@ -310,7 +320,6 @@ export class RelayRoom implements DurableObject {
 				break;
 
 			default:
-				// Unknown message type — ignore
 				break;
 		}
 	}
@@ -336,8 +345,6 @@ export class RelayRoom implements DurableObject {
 			return;
 		}
 
-		// Client messages are forwarded to bridge
-		// Only permission_response, dnd_change, always_allow are expected
 		if (
 			msg.type === "permission_response" ||
 			msg.type === "dnd_change" ||
@@ -359,7 +366,6 @@ export class RelayRoom implements DurableObject {
 	async alarm(): Promise<void> {
 		const now = Date.now();
 		if (this.bridges.size > 0 && now - this.lastBridgeActivity > 35000) {
-			// Bridge timed out
 			for (const ws of this.bridges) {
 				try {
 					ws.close(1000, "Heartbeat timeout");
@@ -375,7 +381,6 @@ export class RelayRoom implements DurableObject {
 			});
 		}
 
-		// Re-arm alarm if bridge still connected
 		if (this.bridges.size > 0) {
 			this.state.storage.setAlarm(now + 30000);
 		}
@@ -402,7 +407,6 @@ export class RelayRoom implements DurableObject {
 		try {
 			ws.send(JSON.stringify(msg));
 		} catch {
-			// Socket is dead, remove from sets
 			this.bridges.delete(ws);
 			this.clients.delete(ws);
 		}

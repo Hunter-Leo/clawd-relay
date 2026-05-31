@@ -29,26 +29,53 @@ Agent (Claude Code)
 
 ### 关键文档
 
-- `.dev/blueprint.md` — 项目级需求追踪（全部 6 个需求已完成）
+- `.dev/blueprint.md` — 项目级需求追踪
 - `.dev/proposal.md` — 完整架构提案与数据流图
 - `packages/types/src/protocol.ts` — 共享消息协议定义（等价于 `bridge/src/clawd_relay_bridge/schemas.py`）
+
+### Durable Object 内部架构
+
+`RelayRoom` DO 按 token 隔离房间，内部维护两套 WebSocket 连接：
+
+- **Bridge** — exclusive（最多 1 个）。旧 bridge 连接被新连接替代时自动关闭旧连接。
+- **Clients** — concurrent（多个浏览器标签页）。
+- **RingBuffer**（容量 50）— 客户端离线期间的消息重放。push 时覆盖旧条目，flush 时按序输出。
+- **Alarm** — 35 秒心跳检测。bridge 无活动超时后关闭连接，通知所有客户端设备离线。
+- **Token Registry DO** — 全局 `__relay_registry__` DO 维护所有 token ID 列表，供 admin 控制台遍历 token。
+
+### 消息协议分类
+
+消息分为三个方向，定义在 `packages/types/src/protocol.ts` 和 bridge/schemas.py：
+
+1. **Upstream**（Bridge → DO → Client）：`session_state`、`permission_request`、`hello`、`keepalive`
+2. **Downstream**（Client → DO → Bridge）：`permission_response`、`dnd_change`、`always_allow`
+3. **Broadcast**（DO → Client only，不转发 Bridge）：`device_online`、`sync_snapshot`
 
 ### 数据流
 
 1. Claude Code hook → `POST /state` (非阻塞) / `POST /permission` (阻塞等待)
-2. Bridge 验证后通过 WebSocket 转发到 Worker Durable Object
-3. DO 广播给所有连接的网页客户端
-4. 网页发起的 `permission_response` 通过 DO 回传给 Bridge
+2. Bridge 通过 Pydantic schema 校验后通过 WebSocket 转发到 Worker Durable Object
+3. DO 将 upstream 消息广播给所有连接的网页客户端，同时写入 RingBuffer
+4. `permission_response` 由网页发出 → DO → Bridge WS → 唤醒 `/permission` 端点的阻塞等待
+
+### 关键内部模式
+
+- **Bridge 自动端口发现**：尝试 23555-23559 端口范围，使用 `socket.bind()` 检测可用端口，将结果写入 `~/.clawd-relay/port.json` 供 hook 脚本读取。
+- **Hook 自动安装/卸载**：Bridge 启动时调用 `install.js` 写入 `~/.claude/settings.json`，关闭时调用 `--uninstall` 移除。
+- **Web 客户端多 token 支持**：URL 参数 `?token=xxx&token=yyy` 可同时连接多个 relay token。支持自定义 relay_url 参数。
+- **Demo 模式**：URL 参数 `?demo` 启动模拟数据模式，无需真实 bridge/worker 即可开发 UI。
+- **Exponential Backoff**：Bridge WS 重连使用 `initial * 2^attempt`（上限 30s），Web 客户端使用相同策略（上限 6 次重试）。
+- **_probe 端点**：`POST /state` 带 `{_probe: true}` 返回 204，hook 脚本用于探测 Bridge 是否存活。
 
 ## Commands
 
 ### Python Bridge
 
 ```bash
-# 运行
+# 运行（cd bridge 后）
 uv run relay [--relay-url <url>] [--port <port>] [--qr-output <ascii|image|none>] [--show-qr]
 
-# 测试（cd bridge 后）
+# 测试
 uv run pytest                          # 全部
 uv run pytest tests/test_server.py -v  # 单个文件
 uv run pytest tests/test_qr_output.py  # QR 模块测试
@@ -64,13 +91,16 @@ uv run ruff check src/
 npm install
 
 # Worker
-npm run -w worker dev             # wrangler dev
+npm run -w worker dev             # wrangler dev (localhost:8787)
 npm run -w worker test            # vitest run
 npm run -w worker deploy          # wrangler deploy
 
 # Web
-npm run -w web dev                # vite dev
+npm run -w web dev                # vite dev (localhost:5173)
 npm run -w web build              # vite build
+npm run -w web preview            # vite preview (built assets)
+npm run -w web test               # vitest run
+npm run -w web test:watch         # vitest watch
 
 # Types 共享包
 npm run -w @clawd-relay/types test
@@ -87,25 +117,19 @@ node -c bridge/src/bridge/hooks/*.js
 
 # 安装（写入 ~/.claude/settings.json）
 node bridge/src/bridge/hooks/install.js
+
+# 卸载
+node bridge/src/bridge/hooks/install.js --uninstall
 ```
 
 ### 全部测试一次性运行
 
 ```bash
-# Bridge (96 tests)
-cd bridge && uv run pytest && cd ..
-
-# Worker (28 tests)
-npm -w worker test
-
-# Web (13 tests)
-npm -w web test
-
-# Types (17 tests)
-npm -w @clawd-relay/types test
-
-# Hook scripts (36 tests)
-node --test bridge/src/bridge/hooks/*.test.js
+cd bridge && uv run pytest && cd ..   # Bridge
+npm -w worker test                    # Worker
+npm -w web test                       # Web
+npm -w @clawd-relay/types test        # Types
+node --test bridge/src/bridge/hooks/*.test.js  # Hook scripts
 ```
 
 ### Monorepo 工具链
@@ -120,7 +144,7 @@ node --test bridge/src/bridge/hooks/*.test.js
 
 | Path | Method | Purpose |
 |------|--------|---------|
-| `/state` | POST | Hook 状态事件推送 |
+| `/state` | POST | Hook 状态事件推送（含 `_probe` 探测） |
 | `/permission` | POST | 权限请求（阻塞等待，通过 WS 转发到网页审批） |
 
 ### Worker Endpoints
@@ -150,12 +174,12 @@ node --test bridge/src/bridge/hooks/*.test.js
 
 ```
 bridge/src/clawd_relay_bridge/
-├── main.py          # CLI entry, orchestration, pairing output
-├── server.py        # FastAPI app
+├── main.py          # CLI entry, orchestration, signal handling, hook lifecycle
+├── server.py        # FastAPI app (/state, /permission)
 ├── token.py         # Token generation, persistence, discovery
 ├── qr_output.py     # QR code rendering (3 modes)
-├── schemas.py       # Pydantic models
-└── ws_client.py     # WebSocket client to Worker
+├── schemas.py       # Pydantic models (消息协议)
+└── ws_client.py     # WebSocket client (连接/重连/心跳/权限等待)
 
 bridge/tests/
 ├── test_main.py, test_qr_output.py, test_server.py,
@@ -164,23 +188,26 @@ bridge/tests/
 
 worker/src/
 ├── index.ts          # Hono routes + app entry
-├── durable-object.ts # RelayRoom DO (WebSocket room, registry, buffering)
+├── durable-object.ts # RelayRoom DO (RingBuffer, alarm, bridge/client lifecycle)
 ├── admin-console.ts  # Admin page HTML renderer
-└── types.ts          # Worker env bindings
+└── types.ts          # Worker env bindings (D1, DO, secrets)
 
 web/src/
 ├── main.tsx          # App entry
-├── App.tsx           # Root component
-├── state/store.ts    # Zustand state (devices, permissions, settings)
-├── ws.ts             # WebSocket client
-├── components/       # UI components
-├── i18n/             # Internationalization
+├── App.tsx           # Root component (reducer-based state, WS connect)
+├── state/store.ts    # useReducer + context (devices, permissions, settings)
+├── ws.ts             # WebSocket singleton manager (multi-token, exponential backoff)
+├── components/       # Dashboard, DeviceGroup, SessionCard, PermissionModal,
+│                     # SessionHUD, ConnectionIndicator, DNDToggle, SettingsPanel,
+│                     # EmptyState, ErrorBoundary
+├── i18n/             # en.ts, zh-CN.ts, index.tsx
+├── theme/            # ThemeProvider (dark/light/system)
 └── pages/            # Route pages
 ```
 
 ## Project Management
 
-- `.dev/blueprint.md` tracks all 6 requirements (all completed)
+- `.dev/blueprint.md` tracks all requirements (7 个已完成)
 - `.dev/TODO.md` for cross-requirement backlog items
 - Each requirement has its own `.dev/[NNN]-[name]/` directory with `init.md` (spec), `generated/rounds/round-NNN/plan.md` + `tasks.md`
 - Bridge is `pre-launch` stage — breaking changes allowed for new modules

@@ -2,9 +2,6 @@
  * Tests for install.js hook registration and unregistration.
  *
  * Uses a temporary settings.json to avoid touching the real ~/.claude.
- * Follows clawd-on-desk pattern: inject settingsPath via options.
- *
- * @module install-test
  */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
@@ -15,176 +12,162 @@ const os = require('os');
 const install = require('./install');
 
 const MARKER = 'clawd-relay-hook';
-const HOOK_EVENTS = [
-  'SessionStart', 'SessionEnd', 'UserPromptSubmit',
-  'PreToolUse', 'PostToolUse', 'Stop',
-];
+const EVENTS = ['Elicitation', 'Notification', 'PostToolUse'];
 
-describe('buildCommand', () => {
+describe('buildEntry', () => {
   it('includes the marker string', () => {
-    const cmd = install.buildCommand('/usr/bin/node', '/hooks/clawd-hook.js', 'Stop');
-    assert.ok(cmd.includes(MARKER));
-    assert.ok(cmd.includes('/usr/bin/node'));
-    assert.ok(cmd.includes('Stop'));
+    const entry = install.buildEntry('/usr/bin/node', '/hooks/clawd-hook.js', 'PostToolUse');
+    assert.ok(entry.command.includes(MARKER));
+    assert.ok(entry.command.includes('/usr/bin/node'));
+    assert.ok(entry.command.includes('PostToolUse'));
+    assert.strictEqual(entry.type, 'command');
+    assert.strictEqual(entry.timeout, 5);
+    assert.strictEqual(entry.async, true);
   });
 });
 
-describe('isOurHook', () => {
-  it('returns true for commands with marker', () => {
-    assert.strictEqual(install.isOurHook(`node "hook.js" Stop # ${MARKER}`), true);
+describe('isOurs', () => {
+  it('returns true for entries with marker', () => {
+    assert.strictEqual(install.isOurs({ command: 'node "hook.js" PostToolUse # ' + MARKER }), true);
   });
 
-  it('returns false for commands without marker', () => {
-    assert.strictEqual(install.isOurHook('node "other-hook.js" Stop'), false);
+  it('returns false for entries without marker', () => {
+    assert.strictEqual(install.isOurs({ command: 'node "other-hook.js" PostToolUse' }), false);
   });
 
-  it('returns false for non-string input', () => {
-    assert.strictEqual(install.isOurHook(null), false);
-    assert.strictEqual(install.isOurHook(undefined), false);
+  it('returns false for non-object input', () => {
+    assert.strictEqual(install.isOurs(null), false);
+    assert.strictEqual(install.isOurs(undefined), false);
+    assert.strictEqual(install.isOurs(42), false);
   });
 });
 
 describe('registerHooks', () => {
-  let tmpDir;
-  let settingsPath;
+  let tmpDir, sp;
 
   before(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'install-test-'));
-    settingsPath = path.join(tmpDir, 'settings.json');
+    sp = path.join(tmpDir, 'settings.json');
   });
 
-  after(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
+  after(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   it('creates settings.json when it does not exist', () => {
-    const result = install.registerHooks({
-      settingsPath,
-      nodeBin: '/usr/bin/node',
-      hookScriptPath: '/hooks/clawd-hook.js',
-    });
-
-    assert.ok(fs.existsSync(settingsPath));
-    assert.strictEqual(result.added, HOOK_EVENTS.length);
+    var result = install.registerHooks({ settingsPath: sp, nodeBin: '/usr/bin/node', hookScriptPath: '/hooks/clawd-hook.js' });
+    assert.ok(fs.existsSync(sp));
+    assert.strictEqual(result.added, EVENTS.length);
     assert.strictEqual(result.removed, 0);
   });
 
-  it('registers all hook events', () => {
-    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  it('registers all hook events in the new format', () => {
+    var settings = JSON.parse(fs.readFileSync(sp, 'utf-8'));
     assert.ok(settings.hooks);
-
-    for (const event of HOOK_EVENTS) {
-      assert.ok(Array.isArray(settings.hooks[event]), `Missing hook: ${event}`);
-      assert.ok(settings.hooks[event].length > 0, `Empty hook: ${event}`);
-      assert.ok(
-        settings.hooks[event].some((entry) => entry.includes(MARKER)),
-        `Missing marker in ${event}`,
-      );
+    for (var ev of EVENTS) {
+      assert.ok(Array.isArray(settings.hooks[ev]), 'Missing: ' + ev);
+      assert.ok(settings.hooks[ev].length > 0, 'Empty: ' + ev);
+      // Each group has matcher + hooks array
+      var group = settings.hooks[ev][0];
+      assert.ok(group.matcher === '', 'matcher missing in ' + ev);
+      assert.ok(Array.isArray(group.hooks), 'hooks array missing in ' + ev);
+      assert.ok(group.hooks.some(function(e) { return e.command.indexOf(MARKER) !== -1; }), 'marker missing in ' + ev);
     }
   });
 
   it('is idempotent — running twice does not duplicate entries', () => {
-    const result = install.registerHooks({
-      settingsPath,
-      nodeBin: '/usr/bin/node',
-      hookScriptPath: '/hooks/clawd-hook.js',
-    });
+    var result = install.registerHooks({ settingsPath: sp, nodeBin: '/usr/bin/node', hookScriptPath: '/hooks/clawd-hook.js' });
+    assert.strictEqual(result.added, EVENTS.length);
+    assert.strictEqual(result.removed, EVENTS.length);
 
-    assert.strictEqual(result.added, HOOK_EVENTS.length);
-    assert.strictEqual(result.removed, HOOK_EVENTS.length); // removed stale then re-added
-
-    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    for (const event of HOOK_EVENTS) {
-      const entries = settings.hooks[event];
-      const ourCount = entries.filter((e) => e.includes(MARKER)).length;
-      assert.strictEqual(ourCount, 1, `Duplicate entries in ${event}`);
+    var settings = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+    for (var ev of EVENTS) {
+      var matches = 0;
+      var groups = settings.hooks[ev];
+      for (var g of groups) {
+        for (var h of g.hooks) {
+          if (h.command.indexOf(MARKER) !== -1) matches++;
+        }
+      }
+      assert.strictEqual(matches, 1, 'Duplicate entries in ' + ev);
     }
   });
 
   it('preserves existing non-our hooks', () => {
-    // Pre-populate with a third-party hook entry
-    fs.writeFileSync(settingsPath, JSON.stringify({
+    fs.writeFileSync(sp, JSON.stringify({
       hooks: {
-        PreToolUse: ['node "third-party.js" PreToolUse'],
-      },
-    }) + '\n');
-
-    const result = install.registerHooks({
-      settingsPath,
-      nodeBin: '/usr/bin/node',
-      hookScriptPath: '/hooks/clawd-hook.js',
-    });
-
-    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    const preToolUse = settings.hooks.PreToolUse;
-    assert.ok(preToolUse.some((e) => e.includes('third-party')), 'Third-party hook lost');
-    assert.ok(preToolUse.some((e) => e.includes(MARKER)), 'Our hook missing');
-  });
-});
-
-describe('unregisterHooks', () => {
-  let tmpDir;
-  let settingsPath;
-
-  before(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'uninstall-test-'));
-    settingsPath = path.join(tmpDir, 'settings.json');
-
-    // Pre-register hooks first
-    install.registerHooks({
-      settingsPath,
-      nodeBin: '/usr/bin/node',
-      hookScriptPath: '/hooks/clawd-hook.js',
-    });
-  });
-
-  after(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('removes all our hooks', () => {
-    const result = install.unregisterHooks({ settingsPath });
-    assert.strictEqual(result.removed, HOOK_EVENTS.length);
-
-    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    for (const event of HOOK_EVENTS) {
-      assert.strictEqual(
-        settings.hooks[event] === undefined ||
-        !settings.hooks[event].some((e) => e.includes(MARKER)),
-        true,
-        `Marker still present in ${event}`,
-      );
-    }
-  });
-
-  it('is idempotent — running twice returns 0 removed', () => {
-    const result = install.unregisterHooks({ settingsPath });
-    assert.strictEqual(result.removed, 0);
-  });
-
-  it('returns 0 removed when settings.json does not exist', () => {
-    const result = install.unregisterHooks({
-      settingsPath: path.join(tmpDir, 'nonexistent.json'),
-    });
-    assert.strictEqual(result.removed, 0);
-  });
-
-  it('preserves third-party hooks when uninstalling', () => {
-    fs.writeFileSync(settingsPath, JSON.stringify({
-      hooks: {
-        PreToolUse: [
-          'node "third-party.js" PreToolUse',
-          `node "hook.js" PreToolUse # ${MARKER}`,
+        PostToolUse: [
+          { matcher: '', hooks: [{ type: 'command', command: 'node "third-party.js" PostToolUse', timeout: 5, async: true }] },
         ],
       },
     }) + '\n');
 
-    install.unregisterHooks({ settingsPath });
+    install.registerHooks({ settingsPath: sp, nodeBin: '/usr/bin/node', hookScriptPath: '/hooks/clawd-hook.js' });
 
-    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    const entries = settings.hooks.PreToolUse;
-    assert.strictEqual(entries.length, 1);
-    assert.ok(entries[0].includes('third-party'));
-    assert.ok(!entries[0].includes(MARKER));
+    var settings = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+    var groups = settings.hooks.PostToolUse;
+    assert.ok(groups.some(function(g) {
+      return g.hooks.some(function(h) { return h.command.indexOf('third-party') !== -1; });
+    }), 'Third-party hook lost');
+    assert.ok(groups.some(function(g) {
+      return g.hooks.some(function(h) { return h.command.indexOf(MARKER) !== -1; });
+    }), 'Our hook missing');
+  });
+});
+
+describe('unregisterHooks', () => {
+  var tmpDir, sp;
+
+  before(function() {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'uninstall-test-'));
+    sp = path.join(tmpDir, 'settings.json');
+    install.registerHooks({ settingsPath: sp, nodeBin: '/usr/bin/node', hookScriptPath: '/hooks/clawd-hook.js' });
+  });
+
+  after(function() { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('removes all our hooks', function() {
+    var result = install.unregisterHooks({ settingsPath: sp });
+    assert.strictEqual(result.removed, EVENTS.length);
+
+    var settings = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+    for (var ev of EVENTS) {
+      var groups = settings.hooks[ev] || [];
+      var marked = 0;
+      for (var g of groups) {
+        for (var h of g.hooks) {
+          if (h.command.indexOf(MARKER) !== -1) marked++;
+        }
+      }
+      assert.strictEqual(marked, 0, 'Marker still present in ' + ev);
+    }
+  });
+
+  it('is idempotent — running twice returns 0 removed', function() {
+    var result = install.unregisterHooks({ settingsPath: sp });
+    assert.strictEqual(result.removed, 0);
+  });
+
+  it('returns 0 removed when settings.json does not exist', function() {
+    var result = install.unregisterHooks({ settingsPath: path.join(tmpDir, 'nonexistent.json') });
+    assert.strictEqual(result.removed, 0);
+  });
+
+  it('preserves third-party hooks when uninstalling', function() {
+    fs.writeFileSync(sp, JSON.stringify({
+      hooks: {
+        PostToolUse: [
+          { matcher: '', hooks: [
+            { type: 'command', command: 'node "third-party.js" PostToolUse', timeout: 5, async: true },
+            { type: 'command', command: 'node "hook.js" PostToolUse # ' + MARKER, timeout: 5, async: true },
+          ]},
+        ],
+      },
+    }) + '\n');
+
+    install.unregisterHooks({ settingsPath: sp });
+    var settings = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+    var hooks = settings.hooks.PostToolUse[0].hooks;
+    assert.strictEqual(hooks.length, 1);
+    assert.ok(hooks[0].command.indexOf('third-party') !== -1);
+    assert.ok(hooks[0].command.indexOf(MARKER) === -1);
   });
 });
