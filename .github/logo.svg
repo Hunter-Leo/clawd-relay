@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="100%" height="100%">
+  <!-- Left ear -->
+  <path d="M 35 70 L 20 20 L 75 40 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Right ear -->
+  <path d="M 165 70 L 180 20 L 125 40 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- Body / head (main circle) -->
+  <circle cx="100" cy="110" r="80" fill="#ffffff" stroke="#2c3e50" stroke-width="8"/>
+
+  <!-- Left eye -->
+  <circle cx="65" cy="95" r="28" fill="#ffffff" stroke="#2c3e50" stroke-width="6"/>
+  <!-- Right eye -->
+  <circle cx="135" cy="95" r="28" fill="#ffffff" stroke="#2c3e50" stroke-width="6"/>
+
+  <!-- Derpy pupils (different sizes, slightly offset) -->
+  <circle cx="75" cy="100" r="7" fill="#2c3e50"/>
+  <circle cx="128" cy="90" r="5" fill="#2c3e50"/>
+
+  <!-- Beak -->
+  <path d="M 92 115 L 108 115 L 100 130 Z" fill="#f1c40f" stroke="#2c3e50" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Left wing -->
+  <path d="M 20 120 Q 0 150 25 165" fill="none" stroke="#2c3e50" stroke-width="8" stroke-linecap="round"/>
+  <!-- Right wing -->
+  <path d="M 180 120 Q 200 150 175 165" fill="none" stroke="#2c3e50" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Belly feather details -->
+  <path d="M 85 155 Q 100 170 115 155" fill="none" stroke="#2c3e50" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 75 170 Q 90 185 105 170" fill="none" stroke="#2c3e50" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 105 170 Q 115 185 125 170" fill="none" stroke="#2c3e50" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Left foot -->
+  <path d="M 65 190 L 65 205 M 65 205 L 55 210 M 65 205 L 75 210" fill="none" stroke="#2c3e50" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right foot -->
+  <path d="M 135 190 L 135 205 M 135 205 L 125 210 M 135 205 L 145 210" fill="none" stroke="#2c3e50" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
