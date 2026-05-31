@@ -17,18 +17,41 @@
  * @module clawd-hook
  */
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const { discoverBridgePort } = require('./server-config');
 
-const BRIDGE_DATA_DIR = require('path').join(require('os').homedir(), '.clawd-relay');
+const BRIDGE_DATA_DIR = path.join(os.homedir(), '.clawd-relay');
 const PERMISSION_TIMEOUT_MS = 300_000;
 const MAX_BODY_BYTES = 4096;
+const TRANSCRIPT_TAIL_BYTES = 262144; // 256 KB
 
-/** Map of current CC hook event names -> relay state. */
-const SESSION_STATES = {
-  Elicitation: 'thinking',
-  Notification: 'notification',
+/** Map of CC hook event names -> relay session state. */
+const EVENT_TO_STATE = {
+  SessionStart: 'idle',
+  SessionEnd: 'sleeping',
+  UserPromptSubmit: 'thinking',
+  PreToolUse: 'working',
   PostToolUse: 'working',
+  PostToolUseFailure: 'error',
+  Stop: 'attention',
+  StopFailure: 'error',
+  ApiError: 'error',
+  SubagentStart: 'thinking',
+  SubagentStop: 'working',
+  PreCompact: 'working',
+  PostCompact: 'attention',
+  Notification: 'notification',
+  Elicitation: 'thinking',
+  WorktreeCreate: 'working',
 };
+
+const API_ERROR_TYPES = new Set([
+  'authentication_failed', 'billing_error', 'rate_limit',
+  'invalid_request', 'model_not_found', 'server_error',
+  'unknown', 'max_output_tokens',
+]);
 
 const AGENT_TYPE = 'claude-code';
 const BRIDGE_HOST = '127.0.0.1';
@@ -67,10 +90,101 @@ function extractToolInput(eventData) {
   return {};
 }
 
+/**
+ * Read tail of CC transcript JSONL file and return parsed entries.
+ * Returns null on any error (file missing, IO error, etc).
+ */
+function readTranscriptTail(transcriptPath) {
+  if (typeof transcriptPath !== 'string' || !transcriptPath) return null;
+  try {
+    var stat = fs.statSync(transcriptPath);
+    var readLen = Math.min(stat.size, TRANSCRIPT_TAIL_BYTES);
+    var fd = fs.openSync(transcriptPath, 'r');
+    var buf = Buffer.alloc(readLen);
+    fs.readSync(fd, buf, 0, readLen, Math.max(0, stat.size - readLen));
+    fs.closeSync(fd);
+    var data = buf.toString('utf8');
+    var truncated = stat.size > readLen;
+    var lines = data.split('\n');
+    if (truncated && lines.length > 1) lines.shift();
+    var entries = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      try { entries.push(JSON.parse(line)); } catch (e) { /* skip malformed */ }
+    }
+    return entries;
+  } catch (e) { return null; }
+}
+
+/**
+ * Find the most recent API error in transcript entries for current session.
+ * Only returns error if no later "user" or non-error "assistant" entry exists
+ * (meaning the turn hasn't moved on).
+ */
+function extractApiError(entries, sessionId) {
+  if (!entries || !sessionId) return null;
+  var lastErrorIndex = -1;
+  for (var i = entries.length - 1; i >= 0; i--) {
+    var e = entries[i];
+    if (e.isApiErrorMessage !== true) continue;
+    if (e.sessionId !== sessionId) continue;
+    lastErrorIndex = i;
+    break;
+  }
+  if (lastErrorIndex < 0) return null;
+  for (var j = lastErrorIndex + 1; j < entries.length; j++) {
+    var t = entries[j];
+    var type = (typeof t.type === 'string') ? t.type : '';
+    if (type === 'user') return null;
+    if (type === 'assistant' && t.isApiErrorMessage !== true) return null;
+  }
+  var rawType = entries[lastErrorIndex].error;
+  var apiErrorType = API_ERROR_TYPES.has(rawType) ? rawType : 'unknown';
+  return { failureKind: 'api_error', apiErrorType: apiErrorType };
+}
+
+function extractSessionTitle(entries) {
+  if (!entries) return null;
+  var latest = null;
+  for (var i = 0; i < entries.length; i++) {
+    var obj = entries[i];
+    var type = (typeof obj.type === 'string') ? obj.type : '';
+    if (type !== 'custom-title' && type !== 'agent-name') continue;
+    latest = sanitize(obj.customTitle || obj.title || obj.custom_title || obj.agentName || obj.agent_name || '', 80)
+      || latest;
+  }
+  return latest;
+}
+
 function buildStatePayload(eventType, eventData) {
-  var state = SESSION_STATES[eventType] || 'idle';
+  var state = EVENT_TO_STATE[eventType] || 'idle';
   var sessionId = sanitize(eventData.session_id || eventData.sessionId || '', 64);
-  var host = sanitize(eventData.host || require('os').hostname(), 64);
+  var host = sanitize(eventData.host || os.hostname(), 64);
+  var toolUseId = sanitize(eventData.tool_use_id || eventData.toolUseId || '', 64) || null;
+  var toolName = extractToolName(eventData);
+
+  // Transcript analysis for API error detection + session title
+  var transcriptEntries = null;
+  try { transcriptEntries = readTranscriptTail(eventData.transcript_path); } catch (e) { /* skip */ }
+
+  // ApiError is synthetic — upgrade Stop to ApiError when transcript shows an API error
+  var extra = {};
+  if (eventType === 'Stop') {
+    var apiError = extractApiError(transcriptEntries, sessionId);
+    if (apiError) {
+      state = 'error';
+      extra.failureKind = apiError.failureKind;
+      extra.apiErrorType = apiError.apiErrorType;
+    }
+  }
+
+  // Session title: try eventData first, then transcript
+  var sessionTitle = sanitize(eventData.session_title || eventData.conversation_title || eventData.conversationTitle || '', 80);
+  if (!sessionTitle && transcriptEntries) {
+    try { sessionTitle = extractSessionTitle(transcriptEntries) || null; } catch (e) { /* skip */ }
+  }
+
   return {
     type: 'session_state',
     device: {
@@ -83,12 +197,14 @@ function buildStatePayload(eventType, eventData) {
       id: sessionId,
       agentId: AGENT_TYPE,
       state: state,
-      title: extractTitle(eventType, eventData) || null,
+      title: sessionTitle || null,
       cwd: sanitize(eventData.cwd || '', 256) || null,
       model: sanitize(eventData.model || '', 40) || null,
-      toolName: extractToolName(eventData) || null,
+      toolName: toolName || null,
+      toolUseId: toolUseId,
       toolInput: Object.keys(extractToolInput(eventData)).length > 0 ? extractToolInput(eventData) : null,
       updatedAt: Date.now(),
+      ...extra,
     },
   };
 }
@@ -98,9 +214,16 @@ async function handlePermission(eventData, port) {
     eventData.permission_id || eventData.permissionId || '',
     64,
   );
+  const host = sanitize(eventData.host || os.hostname(), 64);
 
   const payload = {
     type: 'permission_request',
+    device: {
+      id: host ? 'host-' + host : 'unknown',
+      host: host,
+      platform: process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux',
+      bridgeVersion: '0.1.0',
+    },
     permission_id: permissionId,
     tool_name: sanitize(
       eventData.tool_name || eventData.toolName || '',
@@ -234,4 +357,7 @@ module.exports = {
   buildStatePayload: buildStatePayload,
   handlePermission: handlePermission,
   sendState: sendState,
+  readTranscriptTail: readTranscriptTail,
+  extractApiError: extractApiError,
+  extractSessionTitle: extractSessionTitle,
 };
