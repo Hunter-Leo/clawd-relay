@@ -20,6 +20,7 @@ const http = require('http');
 const { discoverBridgePort } = require('./server-config');
 
 const BRIDGE_DATA_DIR = require('path').join(require('os').homedir(), '.clawd-relay');
+const PERMISSION_TIMEOUT_MS = 300_000; // 5 minutes — matches Bridge PERMISSION_TIMEOUT
 const MAX_BODY_BYTES = 4096;
 const SESSION_STATES = {
   SessionStart: 'thinking',
@@ -121,6 +122,103 @@ function buildStatePayload(eventType, eventData) {
 }
 
 /**
+ * Handle a permission_ask event — forward to Bridge and wait for decision.
+ *
+ * The hook runner expects the script to output nothing (→ fall back to
+ * terminal prompt), "allow", or "deny" on stdout.
+ *
+ * @param {object} eventData - Parsed event JSON
+ * @param {number} port - Bridge port
+ * @returns {Promise<void>}
+ */
+async function handlePermission(eventData, port) {
+  const permissionId = sanitize(
+    eventData.permission_id || eventData.permissionId || '',
+    64,
+  );
+
+  const payload = {
+    type: 'permission_request',
+    permission_id: permissionId,
+    tool_name: sanitize(
+      eventData.tool_name || eventData.toolName || '',
+      60,
+    ),
+    tool_input: extractToolInput(eventData),
+    description: sanitize(
+      eventData.description || eventData.input || '',
+      500,
+    ),
+  };
+
+  const body = JSON.stringify(payload);
+
+  const response = await new Promise((resolve) => {
+    const options = {
+      hostname: BRIDGE_HOST,
+      port,
+      path: '/permission',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+      timeout: PERMISSION_TIMEOUT_MS,
+    };
+
+    const req = http.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        resolve({ statusCode: res.statusCode, body: data });
+      });
+    });
+
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+
+    req.write(body);
+    req.end();
+  });
+
+  if (response === null) {
+    // Network error — silent fail, falls back to terminal prompt
+    return;
+  }
+
+  if (response.statusCode === 204) {
+    // No clients connected — fall back to terminal prompt
+    return;
+  }
+
+  if (response.statusCode === 408) {
+    // Timeout — fall back to terminal prompt
+    return;
+  }
+
+  if (response.statusCode === 200) {
+    try {
+      const parsed = JSON.parse(response.body);
+      if (parsed.approved === true) {
+        process.stdout.write('allow');
+      } else {
+        process.stdout.write('deny');
+      }
+    } catch {
+      // Invalid response body — silent fail
+    }
+    return;
+  }
+
+  // Unexpected status code — silent fail
+}
+
+/**
  * POST a JSON payload to the Bridge /state endpoint.
  *
  * @param {object} payload
@@ -187,16 +285,20 @@ async function main() {
     return; // invalid JSON — silent fail
   }
 
-  // Build the standard state event
-  const payload = buildStatePayload(eventType, eventData);
-
-  // Discover Bridge port and send
+  // Discover Bridge port
   const port = await discoverBridgePort(BRIDGE_DATA_DIR);
   if (port === null) {
     // Bridge not running — silently skip
     return;
   }
 
+  if (eventType === 'permission_ask') {
+    await handlePermission(eventData, port);
+    return;
+  }
+
+  // Build the standard state event and send
+  const payload = buildStatePayload(eventType, eventData);
   await sendState(payload, port);
 }
 
