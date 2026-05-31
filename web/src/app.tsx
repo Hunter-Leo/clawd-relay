@@ -165,16 +165,16 @@ function InnerApp() {
   return (
     <div class="min-h-[100dvh] flex flex-col">
       {/* Top bar */}
-      <header class="flex items-center justify-between px-4 md:px-6 py-3 border-b border-zinc-800">
+      <header class="top-bar flex items-center justify-between px-4 md:px-6 py-3 sticky top-0 z-40">
         <div class="flex items-center gap-3">
           <span class="text-sm font-semibold text-zinc-100">Clawd Relay</span>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-4">
           <ConnectionIndicator status={state.connectionStatus} />
           <DNDToggle dnd={state.settings.dnd} onToggle={handleDndToggle} />
           <button
             onClick={() => setShowSettings(!showSettings)}
-            class="text-sm text-zinc-500 hover:text-zinc-300 hover:rotate-90 transition-all duration-300"
+            class="text-base text-zinc-500 hover:text-zinc-200 hover:rotate-90 transition-all duration-300"
             title="Settings"
           >
             &#9881;
